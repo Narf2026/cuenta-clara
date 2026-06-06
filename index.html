@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cuenta Clara</title>
+
+<link rel="manifest" href="manifest.json">
+
+<meta name="theme-color" content="#1f7a5c">
+
+<style>
+*{box-sizing:border-box;font-family:Arial,sans-serif}
+body{
+margin:0;
+background:#f4f6f9;
+color:#222;
+}
+header{
+background:linear-gradient(135deg,#1f7a5c,#25a06f);
+color:white;
+padding:24px;
+text-align:center;
+border-bottom-left-radius:24px;
+border-bottom-right-radius:24px;
+}
+.logo{
+font-size:50px;
+margin-bottom:10px;
+}
+.container{
+max-width:900px;
+margin:auto;
+padding:15px;
+}
+.card{
+background:white;
+padding:16px;
+border-radius:16px;
+margin-bottom:16px;
+box-shadow:0 2px 10px rgba(0,0,0,.08);
+}
+input,select,button{
+width:100%;
+padding:12px;
+margin-top:8px;
+margin-bottom:12px;
+border-radius:10px;
+border:1px solid #ccc;
+font-size:16px;
+}
+button{
+background:#1f7a5c;
+color:white;
+border:none;
+font-weight:bold;
+}
+.row{
+display:flex;
+gap:10px;
+}
+.row>*{flex:1}
+.person{
+display:inline-block;
+padding:8px 12px;
+background:#eaf7f1;
+border-radius:999px;
+margin:4px;
+font-weight:bold;
+}
+.gasto{
+padding:10px 0;
+border-bottom:1px solid #eee;
+}
+.green{color:green;font-weight:bold}
+.red{color:red;font-weight:bold}
+@media(max-width:600px){
+.row{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<header>
+<div class="logo">💸</div>
+<h1>Cuenta Clara</h1>
+<p>Gastos compartidos fáciles</p>
+</header>
+
+<div class="container">
+
+<div class="card">
+<h2>Personas</h2>
+
+<div class="row">
+<input id="nuevoNombre" placeholder="Agregar persona">
+<button onclick="agregarPersona()">Agregar</button>
+</div>
+
+<div id="personas"></div>
+</div>
+
+<div class="card">
+<h2>Nuevo gasto</h2>
+
+<select id="pagadoPor"></select>
+
+<input id="descripcion" placeholder="Descripción">
+
+<input id="monto" type="number" placeholder="Monto">
+
+<button onclick="agregarGasto()">Agregar gasto</button>
+</div>
+
+<div class="card">
+<h2>Balance</h2>
+<div id="balance"></div>
+</div>
+
+<div class="card">
+<h2>Historial</h2>
+<div id="historial"></div>
+</div>
+
+</div>
+
+<script>
+
+if ('serviceWorker' in navigator) {
+navigator.serviceWorker.register('sw.js');
+}
+
+let personas = JSON.parse(localStorage.getItem("personas")) || ["Francisco","Yessica"];
+let gastos = JSON.parse(localStorage.getItem("gastos")) || [];
+
+function guardar(){
+localStorage.setItem("personas", JSON.stringify(personas));
+localStorage.setItem("gastos", JSON.stringify(gastos));
+}
+
+function renderPersonas(){
+const cont = document.getElementById("personas");
+const select = document.getElementById("pagadoPor");
+
+cont.innerHTML = "";
+select.innerHTML = "";
+
+personas.forEach((p,i)=>{
+cont.innerHTML += `<span class="person">${p}</span>`;
+
+select.innerHTML += `<option>${p}</option>`;
+});
+}
+
+function agregarPersona(){
+const nombre = document.getElementById("nuevoNombre").value.trim();
+
+if(!nombre) return;
+
+personas.push(nombre);
+
+document.getElementById("nuevoNombre").value="";
+
+guardar();
+renderPersonas();
+calcular();
+}
+
+function agregarGasto(){
+
+const gasto = {
+pagadoPor: document.getElementById("pagadoPor").value,
+descripcion: document.getElementById("descripcion").value,
+monto: parseFloat(document.getElementById("monto").value)
+};
+
+if(!gasto.descripcion || !gasto.monto) return;
+
+gastos.push(gasto);
+
+document.getElementById("descripcion").value="";
+document.getElementById("monto").value="";
+
+guardar();
+renderHistorial();
+calcular();
+}
+
+function renderHistorial(){
+const div = document.getElementById("historial");
+
+if(gastos.length===0){
+div.innerHTML = "No hay gastos.";
+return;
+}
+
+div.innerHTML = "";
+
+gastos.slice().reverse().forEach((g,index)=>{
+div.innerHTML += `
+<div class="gasto">
+<strong>${g.pagadoPor}</strong> pagó <strong>$${g.monto}</strong><br>
+${g.descripcion}
+</div>
+`;
+});
+}
+
+function calcular(){
+
+const div = document.getElementById("balance");
+
+let total = 0;
+let aportes = {};
+
+personas.forEach(p=>aportes[p]=0);
+
+gastos.forEach(g=>{
+total += g.monto;
+aportes[g.pagadoPor]+=g.monto;
+});
+
+const porPersona = total / personas.length;
+
+let html = `<p>Total: <strong>$${total.toFixed(2)}</strong></p>`;
+
+personas.forEach(p=>{
+
+const bal = aportes[p]-porPersona;
+
+if(bal>0){
+html += `<div class="green">${p} puso $${bal.toFixed(2)} de más</div>`;
+}else if(bal<0){
+html += `<div class="red">${p} debe $${Math.abs(bal).toFixed(2)}</div>`;
+}else{
+html += `<div>${p} está al día</div>`;
+}
+
+});
+
+div.innerHTML = html;
+}
+
+renderPersonas();
+renderHistorial();
+calcular();
+
+</script>
+
+</body>
+</html>
