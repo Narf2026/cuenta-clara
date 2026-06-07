@@ -608,7 +608,7 @@ function generarPDF(){
   doc.setTextColor(255,255,255);
   doc.setFont('helvetica','bold');
   doc.setFontSize(20);
-  doc.text('💸 Cuenta Clara', M, 16);
+  doc.text('Cuenta Clara', M, 16);
   doc.setFont('helvetica','normal');
   doc.setFontSize(10);
   doc.text(`Resumen de gastos · ${g.nombre}`, M, 24);
@@ -692,7 +692,7 @@ function generarPDF(){
       doc.setTextColor(...grisOscuro);
       doc.setFont('helvetica','bold');
       doc.setFontSize(11);
-      doc.text(`${t.de}  →  ${t.a}`, M+4, y+9);
+      doc.text(`${t.de}  ->  ${t.a}`, M+4, y+9);
       doc.setTextColor(...verde);
       doc.setFontSize(12);
       doc.text(`$${t.monto.toFixed(2)}`, W-M-4, y+9, {align:'right'});
@@ -747,8 +747,12 @@ function generarPDF(){
 
   // ── Historial de gastos
   if(g.gastos.length>0){
-    // Nueva página si queda poco espacio
-    if(y > 220) { doc.addPage(); y = 20; }
+    // Calcular espacio necesario: título(11) + header(8) + filas(7 c/u) + margen(20)
+    const espacioNecesario = 11 + 8 + g.gastos.length * 7 + 20;
+    const espacioDisponible = 277 - y; // 277 = límite antes del pie
+    if(espacioDisponible < Math.min(espacioNecesario, 60)) {
+      doc.addPage(); y = 20;
+    }
     doc.setTextColor(...grisOscuro);
     doc.setFont('helvetica','bold');
     doc.setFontSize(12);
@@ -764,8 +768,8 @@ function generarPDF(){
     doc.setTextColor(255,255,255);
     doc.setFont('helvetica','bold');
     doc.setFontSize(9);
-    doc.text('Pagó', M+3, y+5.5);
-    doc.text('Descripción', M+38, y+5.5);
+    doc.text('Pago', M+3, y+5.5);
+    doc.text('Descripcion', M+38, y+5.5);
     doc.text('Monto', W-M-3, y+5.5, {align:'right'});
     y += 8;
 
