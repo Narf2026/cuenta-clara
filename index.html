@@ -103,6 +103,24 @@ button:active{opacity:.8}
 .tab{flex:1;padding:9px;border-radius:8px;background:none;border:none;font-size:14px;color:#666;cursor:pointer;font-weight:bold;transition:background .15s,color .15s}
 .tab.active{background:white;color:#1f7a5c;box-shadow:0 1px 4px rgba(0,0,0,.1)}
 
+/* MODAL EDITAR GASTO */
+.modal-editar{max-width:400px}
+.modal-editar h3{margin-bottom:16px}
+.modal-editar input,.modal-editar select{margin-bottom:10px}
+.modal-editar .modal-btns{margin-top:4px}
+
+/* MODAL PDF */
+.modal-pdf{max-width:480px}
+.modal-pdf h3{margin-bottom:4px}
+.modal-pdf .subtitle{font-size:13px;color:#888;margin-bottom:16px}
+.pdf-persona-row{background:#f9fafb;border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid #eee}
+.pdf-persona-nombre{font-weight:bold;font-size:15px;margin-bottom:8px;color:#1f7a5c}
+.pdf-persona-row input{margin-bottom:6px;font-size:14px;padding:9px 12px}
+.pdf-persona-row input:last-child{margin-bottom:0}
+.modal-pdf .modal-btns{margin-top:16px}
+.btn-export{background:#1f7a5c;color:white;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:12px;font-size:15px;padding:13px}
+.btn-export:hover{background:#185f47}
+
 @media(max-width:600px){
 .row{flex-direction:column}
 .grupos-grid{grid-template-columns:1fr 1fr}
@@ -137,6 +155,7 @@ button:active{opacity:.8}
       <a onclick="volverAGrupos()">← Grupos</a>
       <span>/</span>
       <span id="breadcrumb-nombre"></span>
+      <button class="btn-sm btn-secondary" style="margin-left:auto;font-size:13px" onclick="abrirModalPDF()">📄 Generar resumen PDF</button>
     </div>
 
     <!-- Personas -->
@@ -191,7 +210,7 @@ button:active{opacity:.8}
 <div class="modal-overlay" id="modal-borrar-persona">
   <div class="modal">
     <h3>Eliminar persona</h3>
-    <p id="modal-persona-msg">¿Seguro? Si esta persona tiene gastos registrados, el balance se recalculará.</p>
+    <p id="modal-persona-msg">¿Seguro? Se eliminarán también todos los gastos registrados a nombre de esta persona.</p>
     <div class="modal-btns">
       <button class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
       <button class="btn-danger" onclick="confirmarBorrarPersona()">Eliminar</button>
@@ -199,6 +218,34 @@ button:active{opacity:.8}
   </div>
 </div>
 
+<!-- Modal editar gasto -->
+<div class="modal-overlay" id="modal-editar-gasto">
+  <div class="modal modal-editar">
+    <h3>Editar gasto</h3>
+    <select id="edit-pagadoPor"></select>
+    <input id="edit-descripcion" placeholder="Descripción">
+    <input id="edit-monto" type="number" placeholder="Monto" min="0" step="0.01">
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-primary" onclick="confirmarEditarGasto()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal PDF: datos bancarios -->
+<div class="modal-overlay" id="modal-pdf">
+  <div class="modal modal-pdf" style="max-height:90vh;overflow-y:auto">
+    <h3>Generar resumen PDF</h3>
+    <p class="subtitle">Completá los datos bancarios de cada persona para incluirlos en el PDF. Son opcionales.</p>
+    <div id="pdf-personas-form"></div>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-primary" onclick="generarPDF()">📄 Descargar PDF</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
@@ -208,6 +255,7 @@ let grupos = JSON.parse(localStorage.getItem('cc_grupos')) || [];
 let grupoActualId = null;
 let pendienteBorrarGrupoId = null;
 let pendienteBorrarPersona = null;
+let gastoEditandoId = null;
 
 function guardar(){
   localStorage.setItem('cc_grupos', JSON.stringify(grupos));
@@ -311,12 +359,13 @@ function agregarPersona(){
 function pedirBorrarPersona(nombre){
   pendienteBorrarPersona = nombre;
   document.getElementById('modal-persona-msg').textContent =
-    `¿Eliminar a "${nombre}"? Si tiene gastos registrados, el balance se recalculará sin ella.`;
+    `¿Eliminar a "${nombre}"? Se eliminarán también todos sus gastos registrados.`;
   document.getElementById('modal-borrar-persona').classList.add('active');
 }
 
 function confirmarBorrarPersona(){
   const g = grupoActual();
+  g.gastos = g.gastos.filter(x=>x.pagadoPor!==pendienteBorrarPersona);
   g.personas = g.personas.filter(p=>p!==pendienteBorrarPersona);
   pendienteBorrarPersona = null;
   guardar();
@@ -350,6 +399,43 @@ function borrarGasto(id){
   calcular();
 }
 
+function abrirEditarGasto(id){
+  const g = grupoActual();
+  const gasto = g.gastos.find(x=>x.id===id);
+  if(!gasto) return;
+  gastoEditandoId = id;
+
+  // Poblar select con personas del grupo
+  const sel = document.getElementById('edit-pagadoPor');
+  sel.innerHTML = g.personas.map(p=>`<option${p===gasto.pagadoPor?' selected':''}>${esc(p)}</option>`).join('');
+
+  document.getElementById('edit-descripcion').value = gasto.descripcion;
+  document.getElementById('edit-monto').value = gasto.monto;
+  document.getElementById('modal-editar-gasto').classList.add('active');
+}
+
+function confirmarEditarGasto(){
+  const g = grupoActual();
+  const gasto = g.gastos.find(x=>x.id===gastoEditandoId);
+  if(!gasto) return;
+
+  const pagadoPor = document.getElementById('edit-pagadoPor').value;
+  const descripcion = document.getElementById('edit-descripcion').value.trim();
+  const monto = parseFloat(document.getElementById('edit-monto').value);
+
+  if(!descripcion || !monto || monto<=0) return;
+
+  gasto.pagadoPor = pagadoPor;
+  gasto.descripcion = descripcion;
+  gasto.monto = monto;
+  gastoEditandoId = null;
+
+  guardar();
+  cerrarModal();
+  renderHistorial();
+  calcular();
+}
+
 function renderHistorial(){
   const g = grupoActual();
   const div = document.getElementById('tab-historial');
@@ -364,6 +450,7 @@ function renderHistorial(){
       </div>
       <div class="gasto-actions">
         <span class="gasto-monto">$${x.monto.toFixed(2)}</span>
+        <button class="btn-sm btn-ghost" onclick="abrirEditarGasto('${x.id}')" title="Editar gasto">✏️</button>
         <button class="btn-sm btn-ghost" onclick="borrarGasto('${x.id}')" title="Borrar gasto">🗑</button>
       </div>
     </div>`).join('');
@@ -470,7 +557,251 @@ function esc(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── INIT ─────────────────────────────────────────────────
+// ── PDF ──────────────────────────────────────────────────
+function abrirModalPDF(){
+  const g = grupoActual();
+  if(g.personas.length===0){alert('No hay personas en el grupo.');return;}
+  const form = document.getElementById('pdf-personas-form');
+  form.innerHTML = g.personas.map(p=>`
+    <div class="pdf-persona-row">
+      <div class="pdf-persona-nombre">${esc(p)}</div>
+      <input type="text" id="pdf-alias-${esc(p)}" placeholder="CVU o alias (opcional)">
+      <input type="text" id="pdf-titular-${esc(p)}" placeholder="Nombre del titular (opcional)">
+    </div>`).join('');
+  document.getElementById('modal-pdf').classList.add('active');
+}
+
+function generarPDF(){
+  const g = grupoActual();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+
+  const W = 210, M = 18;
+  const verde = [31,122,92];
+  const grisOscuro = [40,40,40];
+  const grisMedio = [100,100,100];
+  const grisClaro = [240,242,245];
+  const rojo = [192,57,43];
+  const fecha = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
+
+  // Recolectar datos bancarios
+  const bancarios = {};
+  g.personas.forEach(p=>{
+    bancarios[p] = {
+      alias: document.getElementById(`pdf-alias-${p}`)?.value.trim() || '',
+      titular: document.getElementById(`pdf-titular-${p}`)?.value.trim() || ''
+    };
+  });
+
+  // ── Calcular datos
+  let total=0, aportes={};
+  g.personas.forEach(p=>aportes[p]=0);
+  g.gastos.forEach(x=>{ total+=x.monto; if(aportes[x.pagadoPor]!==undefined) aportes[x.pagadoPor]+=x.monto; });
+  const porPersona = total/g.personas.length;
+  const transferencias = calcularTransferencias(g.personas, aportes, porPersona);
+
+  let y = 0;
+
+  // ── Encabezado verde
+  doc.setFillColor(...verde);
+  doc.rect(0, 0, W, 36, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(20);
+  doc.text('💸 Cuenta Clara', M, 16);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(10);
+  doc.text(`Resumen de gastos · ${g.nombre}`, M, 24);
+  doc.text(`Generado el ${fecha}`, M, 30);
+  y = 46;
+
+  // ── Total general
+  doc.setFillColor(...grisClaro);
+  doc.roundedRect(M, y, W-M*2, 16, 3, 3, 'F');
+  doc.setTextColor(...grisOscuro);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(12);
+  doc.text('Total gastado:', M+6, y+10);
+  doc.setTextColor(...verde);
+  doc.setFontSize(13);
+  doc.text(`$${total.toFixed(2)}`, W-M-2, y+10, {align:'right'});
+  doc.setTextColor(...grisMedio);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(9);
+  doc.text(`$${porPersona.toFixed(2)} por persona (${g.personas.length} personas)`, W-M-2, y+10+5, {align:'right'});
+  y += 26;
+
+  // ── Balance por persona
+  doc.setTextColor(...grisOscuro);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(12);
+  doc.text('Balance por persona', M, y);
+  y += 6;
+  doc.setDrawColor(220,220,220);
+  doc.line(M, y, W-M, y);
+  y += 5;
+
+  g.personas.forEach(p=>{
+    const bal = aportes[p]-porPersona;
+    const esPos = bal>0.005, esNeg = bal<-0.005;
+    const txt = esPos?`puso $${bal.toFixed(2)} de más` : esNeg?`debe $${Math.abs(bal).toFixed(2)}` : 'está al día';
+    const color = esPos?verde : esNeg?rojo : grisMedio;
+
+    doc.setFillColor(esPos?234:esNeg?255:245, esPos?247:esNeg?240:245, esPos?241:esNeg?240:245);
+    doc.roundedRect(M, y, W-M*2, 14, 2, 2, 'F');
+    doc.setTextColor(...grisOscuro);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(11);
+    doc.text(p, M+4, y+9);
+    doc.setTextColor(...color);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(10);
+    doc.text(txt, W-M-4, y+9, {align:'right'});
+    y += 17;
+  });
+  y += 4;
+
+  // ── Cómo saldar
+  doc.setTextColor(...grisOscuro);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(12);
+  doc.text('Cómo saldar las deudas', M, y);
+  y += 6;
+  doc.setDrawColor(220,220,220);
+  doc.line(M, y, W-M, y);
+  y += 5;
+
+  if(transferencias.length===0){
+    doc.setFont('helvetica','italic');
+    doc.setFontSize(10);
+    doc.setTextColor(...grisMedio);
+    doc.text('Todos están al día. No hay nada que saldar.', M, y+6);
+    y += 14;
+  } else {
+    transferencias.forEach(t=>{
+      // Verificar si hay datos bancarios del receptor
+      const banco = bancarios[t.a];
+      const tieneInfo = banco && (banco.alias || banco.titular);
+      const alto = tieneInfo ? 22 : 14;
+
+      doc.setFillColor(245,255,250);
+      doc.setDrawColor(...verde);
+      doc.roundedRect(M, y, W-M*2, alto, 2, 2, 'FD');
+
+      // Flecha y nombres
+      doc.setTextColor(...grisOscuro);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(11);
+      doc.text(`${t.de}  →  ${t.a}`, M+4, y+9);
+      doc.setTextColor(...verde);
+      doc.setFontSize(12);
+      doc.text(`$${t.monto.toFixed(2)}`, W-M-4, y+9, {align:'right'});
+
+      if(tieneInfo){
+        doc.setTextColor(...grisMedio);
+        doc.setFont('helvetica','normal');
+        doc.setFontSize(9);
+        let infoTxt = '';
+        if(banco.alias) infoTxt += `CVU/Alias: ${banco.alias}`;
+        if(banco.titular) infoTxt += `${banco.alias?' · ':''}A nombre de: ${banco.titular}`;
+        doc.text(infoTxt, M+4, y+17);
+      }
+      y += alto + 5;
+    });
+  }
+  y += 4;
+
+  // ── Datos bancarios completos
+  const conDatos = g.personas.filter(p=>bancarios[p]&&(bancarios[p].alias||bancarios[p].titular));
+  if(conDatos.length>0){
+    doc.setTextColor(...grisOscuro);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(12);
+    doc.text('Datos bancarios', M, y);
+    y += 6;
+    doc.setDrawColor(220,220,220);
+    doc.line(M, y, W-M, y);
+    y += 5;
+
+    conDatos.forEach(p=>{
+      const b = bancarios[p];
+      doc.setFillColor(...grisClaro);
+      doc.roundedRect(M, y, W-M*2, 18, 2, 2, 'F');
+      doc.setTextColor(...verde);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(11);
+      doc.text(p, M+4, y+8);
+      doc.setTextColor(...grisOscuro);
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(10);
+      if(b.alias) doc.text(`CVU/Alias: ${b.alias}`, M+4, y+15);
+      if(b.titular){
+        const xTit = b.alias ? W-M-4 : M+4;
+        const anchor = b.alias ? 'right' : 'left';
+        doc.text(`A nombre de: ${b.titular}`, xTit, y+15, {align:anchor});
+      }
+      y += 22;
+    });
+    y += 4;
+  }
+
+  // ── Historial de gastos
+  if(g.gastos.length>0){
+    // Nueva página si queda poco espacio
+    if(y > 220) { doc.addPage(); y = 20; }
+    doc.setTextColor(...grisOscuro);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(12);
+    doc.text('Historial de gastos', M, y);
+    y += 6;
+    doc.setDrawColor(220,220,220);
+    doc.line(M, y, W-M, y);
+    y += 5;
+
+    // Header tabla
+    doc.setFillColor(...verde);
+    doc.rect(M, y, W-M*2, 8, 'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.text('Pagó', M+3, y+5.5);
+    doc.text('Descripción', M+38, y+5.5);
+    doc.text('Monto', W-M-3, y+5.5, {align:'right'});
+    y += 8;
+
+    g.gastos.forEach((x,i)=>{
+      if(y>270){doc.addPage();y=20;}
+      if(i%2===0){doc.setFillColor(248,250,252);doc.rect(M,y,W-M*2,7,'F');}
+      doc.setTextColor(...grisOscuro);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(9);
+      doc.text(x.pagadoPor.substring(0,14), M+3, y+5);
+      doc.setFont('helvetica','normal');
+      doc.text(x.descripcion.substring(0,32), M+38, y+5);
+      doc.setTextColor(...verde);
+      doc.setFont('helvetica','bold');
+      doc.text(`$${x.monto.toFixed(2)}`, W-M-3, y+5, {align:'right'});
+      y += 7;
+    });
+  }
+
+  // ── Pie de página
+  const totalPags = doc.getNumberOfPages();
+  for(let i=1;i<=totalPags;i++){
+    doc.setPage(i);
+    doc.setTextColor(...grisMedio);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8);
+    doc.text('Generado con Cuenta Clara', M, 292);
+    doc.text(`Página ${i} de ${totalPags}`, W-M, 292, {align:'right'});
+  }
+
+  const nombreArchivo = `CuentaClara_${g.nombre.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.pdf`;
+  doc.save(nombreArchivo);
+  cerrarModal();
+}
+
+// ── PDF ──────────────────────────────────────────────────
 renderGrupos();
 </script>
 </body>
