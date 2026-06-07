@@ -4,248 +4,474 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cuenta Clara</title>
-
 <link rel="manifest" href="manifest.json">
-
 <meta name="theme-color" content="#1f7a5c">
-
 <style>
-*{box-sizing:border-box;font-family:Arial,sans-serif}
-body{
-margin:0;
-background:#f4f6f9;
-color:#222;
-}
-header{
-background:linear-gradient(135deg,#1f7a5c,#25a06f);
-color:white;
-padding:24px;
-text-align:center;
-border-bottom-left-radius:24px;
-border-bottom-right-radius:24px;
-}
-.logo{
-font-size:50px;
-margin-bottom:10px;
-}
-.container{
-max-width:900px;
-margin:auto;
-padding:15px;
-}
-.card{
-background:white;
-padding:16px;
-border-radius:16px;
-margin-bottom:16px;
-box-shadow:0 2px 10px rgba(0,0,0,.08);
-}
-input,select,button{
-width:100%;
-padding:12px;
-margin-top:8px;
-margin-bottom:12px;
-border-radius:10px;
-border:1px solid #ccc;
-font-size:16px;
-}
-button{
-background:#1f7a5c;
-color:white;
-border:none;
-font-weight:bold;
-}
-.row{
-display:flex;
-gap:10px;
-}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f4f6f9;color:#222;min-height:100vh}
+
+/* HEADER */
+header{background:linear-gradient(135deg,#1f7a5c,#25a06f);color:white;padding:20px 24px;text-align:center;border-bottom-left-radius:24px;border-bottom-right-radius:24px}
+header .logo{font-size:42px;margin-bottom:6px}
+header h1{font-size:24px;margin-bottom:4px}
+header p{font-size:14px;opacity:.85}
+
+/* CONTAINER */
+.container{max-width:900px;margin:auto;padding:15px}
+
+/* CARD */
+.card{background:white;padding:16px;border-radius:16px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.card h2{font-size:17px;margin-bottom:12px;color:#1f7a5c}
+
+/* FORM ELEMENTS */
+input,select{width:100%;padding:11px 12px;margin-bottom:10px;border-radius:10px;border:1px solid #ccc;font-size:15px;background:white;color:#222}
+input:focus,select:focus{outline:none;border-color:#1f7a5c}
+
+/* BUTTONS */
+button{padding:11px 16px;border-radius:10px;border:none;font-size:15px;font-weight:bold;cursor:pointer;transition:opacity .15s,background .15s}
+button:active{opacity:.8}
+.btn-primary{background:#1f7a5c;color:white;width:100%}
+.btn-sm{padding:5px 10px;font-size:13px;border-radius:8px}
+.btn-danger{background:#e53e3e;color:white}
+.btn-secondary{background:#eee;color:#444}
+.btn-ghost{background:none;color:#888;font-size:13px;font-weight:normal;padding:4px 8px;border-radius:6px}
+.btn-ghost:hover{background:#f0f0f0}
+
+/* ROW */
+.row{display:flex;gap:10px}
 .row>*{flex:1}
-.person{
-display:inline-block;
-padding:8px 12px;
-background:#eaf7f1;
-border-radius:999px;
-margin:4px;
-font-weight:bold;
-}
-.gasto{
-padding:10px 0;
-border-bottom:1px solid #eee;
-}
-.green{color:green;font-weight:bold}
-.red{color:red;font-weight:bold}
+
+/* GRUPOS */
+#vista-grupos{}
+.grupos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:8px}
+.grupo-card{background:white;border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer;border:2px solid transparent;transition:border-color .15s,box-shadow .15s;position:relative}
+.grupo-card:hover{border-color:#1f7a5c;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.grupo-card .gc-nombre{font-size:16px;font-weight:bold;margin-bottom:4px}
+.grupo-card .gc-info{font-size:13px;color:#888}
+.grupo-card .gc-del{position:absolute;top:8px;right:8px;background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px}
+.grupo-card .gc-del:hover{color:#e53e3e;background:#fff0f0}
+.nuevo-grupo{background:#f9fafb;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;gap:8px;color:#888;font-size:15px;font-weight:bold;min-height:80px}
+.nuevo-grupo:hover{border-color:#1f7a5c;color:#1f7a5c;background:#f0faf6}
+
+/* VISTA GRUPO */
+#vista-grupo{display:none}
+.breadcrumb{display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:14px;color:#888}
+.breadcrumb a{color:#1f7a5c;cursor:pointer;font-weight:bold;text-decoration:none}
+.breadcrumb a:hover{text-decoration:underline}
+.breadcrumb span{color:#aaa}
+
+/* PERSONAS */
+.persona-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:#eaf7f1;border-radius:999px;margin:4px;font-weight:bold;font-size:14px}
+.persona-chip button{background:none;border:none;color:#999;font-size:14px;cursor:pointer;padding:0 0 0 2px;width:auto;font-weight:bold}
+.persona-chip button:hover{color:#e53e3e}
+
+/* HISTORIAL */
+.gasto-row{padding:10px 0;border-bottom:1px solid #f0f0f0;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.gasto-row:last-child{border-bottom:none}
+.gasto-info{}
+.gasto-info strong{font-size:15px}
+.gasto-info .gasto-desc{font-size:13px;color:#666;margin-top:2px}
+.gasto-monto{font-size:15px;font-weight:bold;color:#1f7a5c;white-space:nowrap}
+.gasto-actions{display:flex;gap:4px;align-items:center}
+.sin-gastos{color:#aaa;font-size:14px;text-align:center;padding:16px 0}
+
+/* BALANCE */
+.balance-total{font-size:18px;font-weight:bold;margin-bottom:12px;color:#222}
+.balance-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:10px;margin-bottom:6px;font-size:15px}
+.balance-row.pos{background:#eaf7f1;color:#1a6649}
+.balance-row.neg{background:#fff0f0;color:#c0392b}
+.balance-row.cero{background:#f5f5f5;color:#666}
+.balance-badge{font-weight:bold;font-size:14px}
+
+/* TRANSFERENCIAS */
+.transfer-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fafafa;border-radius:10px;margin-bottom:6px;font-size:14px;border:1px solid #eee}
+.transfer-arrow{color:#1f7a5c;font-size:18px}
+.transfer-amount{font-weight:bold;color:#1f7a5c;margin-left:auto}
+.sin-transferencias{color:#aaa;font-size:14px;text-align:center;padding:12px 0}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:center;justify-content:center}
+.modal-overlay.active{display:flex}
+.modal{background:white;border-radius:18px;padding:24px;max-width:380px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.2)}
+.modal h3{font-size:18px;margin-bottom:8px}
+.modal p{font-size:14px;color:#555;margin-bottom:20px}
+.modal-btns{display:flex;gap:10px}
+.modal-btns button{flex:1}
+
+/* TABS */
+.tabs{display:flex;gap:4px;margin-bottom:16px;background:#f0f0f0;border-radius:10px;padding:4px}
+.tab{flex:1;padding:9px;border-radius:8px;background:none;border:none;font-size:14px;color:#666;cursor:pointer;font-weight:bold;transition:background .15s,color .15s}
+.tab.active{background:white;color:#1f7a5c;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+
 @media(max-width:600px){
 .row{flex-direction:column}
+.grupos-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:380px){
+.grupos-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
 <body>
 
 <header>
-<div class="logo">💸</div>
-<h1>Cuenta Clara</h1>
-<p>Gastos compartidos fáciles</p>
+  <div class="logo">💸</div>
+  <h1>Cuenta Clara</h1>
+  <p>Gastos compartidos fáciles</p>
 </header>
 
 <div class="container">
 
-<div class="card">
-<h2>Personas</h2>
+  <!-- VISTA: LISTA DE GRUPOS -->
+  <div id="vista-grupos">
+    <div class="card">
+      <h2>Mis grupos</h2>
+      <div class="grupos-grid" id="grupos-grid"></div>
+    </div>
+  </div>
 
-<div class="row">
-<input id="nuevoNombre" placeholder="Agregar persona">
-<button onclick="agregarPersona()">Agregar</button>
+  <!-- VISTA: DENTRO DE UN GRUPO -->
+  <div id="vista-grupo">
+
+    <div class="breadcrumb">
+      <a onclick="volverAGrupos()">← Grupos</a>
+      <span>/</span>
+      <span id="breadcrumb-nombre"></span>
+    </div>
+
+    <!-- Personas -->
+    <div class="card">
+      <h2>Personas</h2>
+      <div class="row">
+        <input id="nuevoNombre" placeholder="Nombre de persona" onkeydown="if(event.key==='Enter')agregarPersona()">
+        <button class="btn-primary" style="width:auto;padding:11px 20px" onclick="agregarPersona()">Agregar</button>
+      </div>
+      <div id="personas"></div>
+    </div>
+
+    <!-- Nuevo gasto -->
+    <div class="card">
+      <h2>Nuevo gasto</h2>
+      <select id="pagadoPor"></select>
+      <input id="descripcion" placeholder="Descripción" onkeydown="if(event.key==='Enter')agregarGasto()">
+      <div class="row">
+        <input id="monto" type="number" placeholder="Monto" min="0" step="0.01" onkeydown="if(event.key==='Enter')agregarGasto()">
+        <button class="btn-primary" style="width:auto;padding:11px 20px" onclick="agregarGasto()">Agregar</button>
+      </div>
+    </div>
+
+    <!-- Tabs: Balance / Transferencias / Historial -->
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" onclick="mostrarTab('balance',this)">Balance</button>
+        <button class="tab" onclick="mostrarTab('transferencias',this)">Cómo saldar</button>
+        <button class="tab" onclick="mostrarTab('historial',this)">Historial</button>
+      </div>
+      <div id="tab-balance"></div>
+      <div id="tab-transferencias" style="display:none"></div>
+      <div id="tab-historial" style="display:none"></div>
+    </div>
+
+  </div>
 </div>
 
-<div id="personas"></div>
+<!-- Modal confirmación borrar grupo -->
+<div class="modal-overlay" id="modal-borrar-grupo">
+  <div class="modal">
+    <h3>Borrar grupo</h3>
+    <p id="modal-msg">¿Seguro que querés borrar este grupo? Se perderán todos los gastos.</p>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-danger" onclick="confirmarBorrarGrupo()">Borrar</button>
+    </div>
+  </div>
 </div>
 
-<div class="card">
-<h2>Nuevo gasto</h2>
-
-<select id="pagadoPor"></select>
-
-<input id="descripcion" placeholder="Descripción">
-
-<input id="monto" type="number" placeholder="Monto">
-
-<button onclick="agregarGasto()">Agregar gasto</button>
-</div>
-
-<div class="card">
-<h2>Balance</h2>
-<div id="balance"></div>
-</div>
-
-<div class="card">
-<h2>Historial</h2>
-<div id="historial"></div>
-</div>
-
+<!-- Modal confirmación borrar persona -->
+<div class="modal-overlay" id="modal-borrar-persona">
+  <div class="modal">
+    <h3>Eliminar persona</h3>
+    <p id="modal-persona-msg">¿Seguro? Si esta persona tiene gastos registrados, el balance se recalculará.</p>
+    <div class="modal-btns">
+      <button class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-danger" onclick="confirmarBorrarPersona()">Eliminar</button>
+    </div>
+  </div>
 </div>
 
 <script>
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
-if ('serviceWorker' in navigator) {
-navigator.serviceWorker.register('sw.js');
-}
-
-let personas = JSON.parse(localStorage.getItem("personas")) || ["Francisco","Yessica"];
-let gastos = JSON.parse(localStorage.getItem("gastos")) || [];
+// ── ESTADO ──────────────────────────────────────────────
+// grupos: [{id, nombre, personas:[], gastos:[{id,pagadoPor,descripcion,monto}]}]
+let grupos = JSON.parse(localStorage.getItem('cc_grupos')) || [];
+let grupoActualId = null;
+let pendienteBorrarGrupoId = null;
+let pendienteBorrarPersona = null;
 
 function guardar(){
-localStorage.setItem("personas", JSON.stringify(personas));
-localStorage.setItem("gastos", JSON.stringify(gastos));
+  localStorage.setItem('cc_grupos', JSON.stringify(grupos));
 }
 
+function grupoActual(){
+  return grupos.find(g=>g.id===grupoActualId);
+}
+
+// ── GRUPOS ───────────────────────────────────────────────
+function renderGrupos(){
+  const grid = document.getElementById('grupos-grid');
+  let html = '';
+  grupos.forEach(g=>{
+    const total = g.gastos.reduce((s,x)=>s+x.monto,0);
+    html += `
+    <div class="grupo-card" onclick="abrirGrupo('${g.id}')">
+      <button class="gc-del" onclick="event.stopPropagation();pedirBorrarGrupo('${g.id}')" title="Borrar grupo">✕</button>
+      <div class="gc-nombre">${esc(g.nombre)}</div>
+      <div class="gc-info">${g.personas.length} persona${g.personas.length!==1?'s':''} · $${total.toFixed(2)}</div>
+    </div>`;
+  });
+  html += `<div class="grupo-card nuevo-grupo" onclick="crearGrupo()">
+    <span>＋</span><span>Nuevo grupo</span>
+  </div>`;
+  grid.innerHTML = html;
+}
+
+function crearGrupo(){
+  const nombre = prompt('Nombre del grupo (ej: Viaje a Bariloche):');
+  if(!nombre || !nombre.trim()) return;
+  const g = {id: Date.now().toString(), nombre: nombre.trim(), personas:[], gastos:[]};
+  grupos.push(g);
+  guardar();
+  renderGrupos();
+  abrirGrupo(g.id);
+}
+
+function pedirBorrarGrupo(id){
+  pendienteBorrarGrupoId = id;
+  const g = grupos.find(x=>x.id===id);
+  document.getElementById('modal-msg').textContent = `¿Seguro que querés borrar "${g.nombre}"? Se perderán todos los gastos.`;
+  document.getElementById('modal-borrar-grupo').classList.add('active');
+}
+
+function confirmarBorrarGrupo(){
+  grupos = grupos.filter(g=>g.id!==pendienteBorrarGrupoId);
+  pendienteBorrarGrupoId = null;
+  guardar();
+  cerrarModal();
+  renderGrupos();
+}
+
+function abrirGrupo(id){
+  grupoActualId = id;
+  const g = grupoActual();
+  document.getElementById('vista-grupos').style.display='none';
+  document.getElementById('vista-grupo').style.display='block';
+  document.getElementById('breadcrumb-nombre').textContent = g.nombre;
+  mostrarTab('balance', document.querySelector('.tab'));
+  renderPersonas();
+  renderHistorial();
+  calcular();
+}
+
+function volverAGrupos(){
+  grupoActualId = null;
+  document.getElementById('vista-grupos').style.display='block';
+  document.getElementById('vista-grupo').style.display='none';
+  renderGrupos();
+}
+
+// ── PERSONAS ─────────────────────────────────────────────
 function renderPersonas(){
-const cont = document.getElementById("personas");
-const select = document.getElementById("pagadoPor");
-
-cont.innerHTML = "";
-select.innerHTML = "";
-
-personas.forEach((p,i)=>{
-cont.innerHTML += `<span class="person">${p}</span>`;
-
-select.innerHTML += `<option>${p}</option>`;
-});
+  const g = grupoActual();
+  const cont = document.getElementById('personas');
+  const select = document.getElementById('pagadoPor');
+  cont.innerHTML = g.personas.length===0
+    ? '<p style="color:#aaa;font-size:13px;margin-top:4px">Agregá personas para empezar.</p>'
+    : g.personas.map(p=>`
+        <span class="persona-chip">
+          ${esc(p)}
+          <button onclick="pedirBorrarPersona('${esc(p)}')" title="Eliminar">✕</button>
+        </span>`).join('');
+  select.innerHTML = g.personas.map(p=>`<option>${esc(p)}</option>`).join('');
 }
 
 function agregarPersona(){
-const nombre = document.getElementById("nuevoNombre").value.trim();
-
-if(!nombre) return;
-
-personas.push(nombre);
-
-document.getElementById("nuevoNombre").value="";
-
-guardar();
-renderPersonas();
-calcular();
+  const input = document.getElementById('nuevoNombre');
+  const nombre = input.value.trim();
+  if(!nombre) return;
+  const g = grupoActual();
+  if(g.personas.includes(nombre)){alert('Ya existe esa persona.');return;}
+  g.personas.push(nombre);
+  input.value='';
+  guardar();
+  renderPersonas();
+  calcular();
 }
 
+function pedirBorrarPersona(nombre){
+  pendienteBorrarPersona = nombre;
+  document.getElementById('modal-persona-msg').textContent =
+    `¿Eliminar a "${nombre}"? Si tiene gastos registrados, el balance se recalculará sin ella.`;
+  document.getElementById('modal-borrar-persona').classList.add('active');
+}
+
+function confirmarBorrarPersona(){
+  const g = grupoActual();
+  g.personas = g.personas.filter(p=>p!==pendienteBorrarPersona);
+  pendienteBorrarPersona = null;
+  guardar();
+  cerrarModal();
+  renderPersonas();
+  renderHistorial();
+  calcular();
+}
+
+// ── GASTOS ───────────────────────────────────────────────
 function agregarGasto(){
+  const g = grupoActual();
+  if(g.personas.length<2){alert('Agregá al menos 2 personas primero.');return;}
+  const pagadoPor = document.getElementById('pagadoPor').value;
+  const descripcion = document.getElementById('descripcion').value.trim();
+  const monto = parseFloat(document.getElementById('monto').value);
+  if(!descripcion||!monto||monto<=0) return;
+  g.gastos.push({id:Date.now().toString(), pagadoPor, descripcion, monto});
+  document.getElementById('descripcion').value='';
+  document.getElementById('monto').value='';
+  guardar();
+  renderHistorial();
+  calcular();
+}
 
-const gasto = {
-pagadoPor: document.getElementById("pagadoPor").value,
-descripcion: document.getElementById("descripcion").value,
-monto: parseFloat(document.getElementById("monto").value)
-};
-
-if(!gasto.descripcion || !gasto.monto) return;
-
-gastos.push(gasto);
-
-document.getElementById("descripcion").value="";
-document.getElementById("monto").value="";
-
-guardar();
-renderHistorial();
-calcular();
+function borrarGasto(id){
+  const g = grupoActual();
+  g.gastos = g.gastos.filter(x=>x.id!==id);
+  guardar();
+  renderHistorial();
+  calcular();
 }
 
 function renderHistorial(){
-const div = document.getElementById("historial");
-
-if(gastos.length===0){
-div.innerHTML = "No hay gastos.";
-return;
+  const g = grupoActual();
+  const div = document.getElementById('tab-historial');
+  if(g.gastos.length===0){
+    div.innerHTML='<p class="sin-gastos">No hay gastos aún.</p>';return;
+  }
+  div.innerHTML = g.gastos.slice().reverse().map(x=>`
+    <div class="gasto-row">
+      <div class="gasto-info">
+        <strong>${esc(x.pagadoPor)}</strong>
+        <div class="gasto-desc">${esc(x.descripcion)}</div>
+      </div>
+      <div class="gasto-actions">
+        <span class="gasto-monto">$${x.monto.toFixed(2)}</span>
+        <button class="btn-sm btn-ghost" onclick="borrarGasto('${x.id}')" title="Borrar gasto">🗑</button>
+      </div>
+    </div>`).join('');
 }
 
-div.innerHTML = "";
-
-gastos.slice().reverse().forEach((g,index)=>{
-div.innerHTML += `
-<div class="gasto">
-<strong>${g.pagadoPor}</strong> pagó <strong>$${g.monto}</strong><br>
-${g.descripcion}
-</div>
-`;
-});
-}
-
+// ── CÁLCULOS ─────────────────────────────────────────────
 function calcular(){
+  const g = grupoActual();
+  const divBal = document.getElementById('tab-balance');
+  const divTrans = document.getElementById('tab-transferencias');
 
-const div = document.getElementById("balance");
+  if(g.personas.length===0){
+    divBal.innerHTML='<p class="sin-gastos">Agregá personas para ver el balance.</p>';
+    divTrans.innerHTML='';
+    return;
+  }
 
-let total = 0;
-let aportes = {};
+  let total=0;
+  let aportes={};
+  g.personas.forEach(p=>aportes[p]=0);
+  g.gastos.forEach(x=>{
+    total+=x.monto;
+    if(aportes[x.pagadoPor]!==undefined) aportes[x.pagadoPor]+=x.monto;
+  });
 
-personas.forEach(p=>aportes[p]=0);
+  const porPersona = total/g.personas.length;
 
-gastos.forEach(g=>{
-total += g.monto;
-aportes[g.pagadoPor]+=g.monto;
-});
+  // Balance
+  let htmlBal = `<div class="balance-total">Total: $${total.toFixed(2)}</div>`;
+  g.personas.forEach(p=>{
+    const bal = aportes[p]-porPersona;
+    const cls = bal>0.005?'pos':bal<-0.005?'neg':'cero';
+    const txt = bal>0.005?`puso $${bal.toFixed(2)} de más`
+               :bal<-0.005?`debe $${Math.abs(bal).toFixed(2)}`
+               :`está al día`;
+    htmlBal+=`<div class="balance-row ${cls}"><span>${esc(p)}</span><span class="balance-badge">${txt}</span></div>`;
+  });
+  divBal.innerHTML=htmlBal;
 
-const porPersona = total / personas.length;
-
-let html = `<p>Total: <strong>$${total.toFixed(2)}</strong></p>`;
-
-personas.forEach(p=>{
-
-const bal = aportes[p]-porPersona;
-
-if(bal>0){
-html += `<div class="green">${p} puso $${bal.toFixed(2)} de más</div>`;
-}else if(bal<0){
-html += `<div class="red">${p} debe $${Math.abs(bal).toFixed(2)}</div>`;
-}else{
-html += `<div>${p} está al día</div>`;
+  // Transferencias mínimas (greedy)
+  const transferencias = calcularTransferencias(g.personas, aportes, porPersona);
+  if(transferencias.length===0){
+    divTrans.innerHTML='<p class="sin-transferencias">Todos están al día. ¡No hay nada que saldar!</p>';
+  } else {
+    divTrans.innerHTML = transferencias.map(t=>`
+      <div class="transfer-row">
+        <span>${esc(t.de)}</span>
+        <span class="transfer-arrow">→</span>
+        <span>${esc(t.a)}</span>
+        <span class="transfer-amount">$${t.monto.toFixed(2)}</span>
+      </div>`).join('');
+  }
 }
 
-});
+function calcularTransferencias(personas, aportes, porPersona){
+  // saldo positivo = a cobrar, negativo = a pagar
+  let saldos = personas.map(p=>({nombre:p, saldo: aportes[p]-porPersona}));
+  const EPS = 0.005;
+  let resultado = [];
 
-div.innerHTML = html;
+  // ordenar: deudores (neg) y acreedores (pos)
+  let deudores = saldos.filter(s=>s.saldo<-EPS).map(s=>({...s,saldo:-s.saldo}));
+  let acreedores = saldos.filter(s=>s.saldo>EPS);
+
+  deudores.sort((a,b)=>b.saldo-a.saldo);
+  acreedores.sort((a,b)=>b.saldo-a.saldo);
+
+  let i=0, j=0;
+  while(i<deudores.length && j<acreedores.length){
+    const pagar = deudores[i].saldo;
+    const cobrar = acreedores[j].saldo;
+    const monto = Math.min(pagar,cobrar);
+    if(monto>EPS){
+      resultado.push({de:deudores[i].nombre, a:acreedores[j].nombre, monto});
+    }
+    deudores[i].saldo -= monto;
+    acreedores[j].saldo -= monto;
+    if(deudores[i].saldo<=EPS) i++;
+    if(acreedores[j].saldo<=EPS) j++;
+  }
+  return resultado;
 }
 
-renderPersonas();
-renderHistorial();
-calcular();
+// ── TABS ─────────────────────────────────────────────────
+function mostrarTab(nombre, btn){
+  ['balance','transferencias','historial'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display = t===nombre?'block':'none';
+  });
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  else document.querySelector('.tab').classList.add('active');
+}
 
+// ── MODAL ────────────────────────────────────────────────
+function cerrarModal(){
+  document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('active'));
+}
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{ if(e.target===m) cerrarModal(); });
+});
+
+// ── UTILS ────────────────────────────────────────────────
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── INIT ─────────────────────────────────────────────────
+renderGrupos();
 </script>
-
 </body>
 </html>
