@@ -1,812 +1,979 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cuenta Clara</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1f7a5c">
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,sans-serif;background:#f4f6f9;color:#222;min-height:100vh}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>finanzapp</title>
 
-/* HEADER */
-header{background:linear-gradient(135deg,#1f7a5c,#25a06f);color:white;padding:20px 24px;text-align:center;border-bottom-left-radius:24px;border-bottom-right-radius:24px}
-header .logo{font-size:42px;margin-bottom:6px}
-header h1{font-size:24px;margin-bottom:4px}
-header p{font-size:14px;opacity:.85}
+  <!-- PWA Manifest & Icons -->
+  <script>
+(function() {
+  var icon192 = 'icon-192.png';
+  var icon512 = 'icon-512.png';
+  var manifest = {
+    name: 'finanzapp',
+    short_name: 'finanzapp',
+    description: 'Gestión de finanzas personales',
+    start_url: '/',
+    display: 'standalone',
+    background_color: '#070d16',
+    theme_color: '#18d47b',
+    icons: [
+      { src: icon192, sizes: '192x192', type: 'image/png' },
+      { src: icon512, sizes: '512x512', type: 'image/png' }
+    ]
+  };
+  var blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+  var url = URL.createObjectURL(blob);
+  var link = document.createElement('link');
+  link.rel = 'manifest';
+  link.href = url;
+  document.head.appendChild(link);
 
-/* CONTAINER */
-.container{max-width:900px;margin:auto;padding:15px}
+  // Apple touch icon
+  var apple = document.createElement('link');
+  apple.rel = 'apple-touch-icon';
+  apple.href = icon192;
+  document.head.appendChild(apple);
 
-/* CARD */
-.card{background:white;padding:16px;border-radius:16px;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,.08)}
-.card h2{font-size:17px;margin-bottom:12px;color:#1f7a5c}
+  // Theme color meta
+  var meta = document.createElement('meta');
+  meta.name = 'theme-color';
+  meta.content = '#18d47b';
+  document.head.appendChild(meta);
+})();
+  </script>
 
-/* FORM ELEMENTS */
-input,select{width:100%;padding:11px 12px;margin-bottom:10px;border-radius:10px;border:1px solid #ccc;font-size:15px;background:white;color:#222}
-input:focus,select:focus{outline:none;border-color:#1f7a5c}
+  <!-- Performance: preconnect to external origins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 
-/* BUTTONS */
-button{padding:11px 16px;border-radius:10px;border:none;font-size:15px;font-weight:bold;cursor:pointer;transition:opacity .15s,background .15s}
-button:active{opacity:.8}
-.btn-primary{background:#1f7a5c;color:white;width:100%}
-.btn-sm{padding:5px 10px;font-size:13px;border-radius:8px}
-.btn-danger{background:#e53e3e;color:white}
-.btn-secondary{background:#eee;color:#444}
-.btn-ghost{background:none;color:#888;font-size:13px;font-weight:normal;padding:4px 8px;border-radius:6px}
-.btn-ghost:hover{background:#f0f0f0}
+  <!-- Fonts: display=swap already present, load non-blocking -->
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-/* ROW */
-.row{display:flex;gap:10px}
-.row>*{flex:1}
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css">
 
-/* GRUPOS */
-#vista-grupos{}
-.grupos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:8px}
-.grupo-card{background:white;border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer;border:2px solid transparent;transition:border-color .15s,box-shadow .15s;position:relative}
-.grupo-card:hover{border-color:#1f7a5c;box-shadow:0 4px 14px rgba(0,0,0,.12)}
-.grupo-card .gc-nombre{font-size:16px;font-weight:bold;margin-bottom:4px}
-.grupo-card .gc-info{font-size:13px;color:#888}
-.grupo-card .gc-del{position:absolute;top:8px;right:8px;background:none;border:none;color:#ccc;font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px}
-.grupo-card .gc-del:hover{color:#e53e3e;background:#fff0f0}
-.nuevo-grupo{background:#f9fafb;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;gap:8px;color:#888;font-size:15px;font-weight:bold;min-height:80px}
-.nuevo-grupo:hover{border-color:#1f7a5c;color:#1f7a5c;background:#f0faf6}
+  <!-- Firebase (module, non-blocking) -->
+  <script type="module">
 
-/* VISTA GRUPO */
-#vista-grupo{display:none}
-.breadcrumb{display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:14px;color:#888}
-.breadcrumb a{color:#1f7a5c;cursor:pointer;font-weight:bold;text-decoration:none}
-.breadcrumb a:hover{text-decoration:underline}
-.breadcrumb span{color:#aaa}
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, deleteDoc, updateDoc, arrayUnion, arrayRemove, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-/* PERSONAS */
-.persona-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:#eaf7f1;border-radius:999px;margin:4px;font-weight:bold;font-size:14px}
-.persona-chip button{background:none;border:none;color:#999;font-size:14px;cursor:pointer;padding:0 0 0 2px;width:auto;font-weight:bold}
-.persona-chip button:hover{color:#e53e3e}
+const firebaseConfig = {
+  apiKey: "AIzaSyCbiRrXVS_R-NhH0ZBlHa06zzdBdK9zdSE",
+  authDomain: "mis-finanzas-14af8.firebaseapp.com",
+  projectId: "mis-finanzas-14af8",
+  storageBucket: "mis-finanzas-14af8.firebasestorage.app",
+  messagingSenderId: "189395350008",
+  appId: "1:189395350008:web:e8516f4c8f3c790a1be60d"
+};
 
-/* HISTORIAL */
-.gasto-row{padding:10px 0;border-bottom:1px solid #f0f0f0;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
-.gasto-row:last-child{border-bottom:none}
-.gasto-info{}
-.gasto-info strong{font-size:15px}
-.gasto-info .gasto-desc{font-size:13px;color:#666;margin-top:2px}
-.gasto-monto{font-size:15px;font-weight:bold;color:#1f7a5c;white-space:nowrap}
-.gasto-actions{display:flex;gap:4px;align-items:center}
-.sin-gastos{color:#aaa;font-size:14px;text-align:center;padding:16px 0}
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-/* BALANCE */
-.balance-total{font-size:18px;font-weight:bold;margin-bottom:12px;color:#222}
-.balance-row{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:10px;margin-bottom:6px;font-size:15px}
-.balance-row.pos{background:#eaf7f1;color:#1a6649}
-.balance-row.neg{background:#fff0f0;color:#c0392b}
-.balance-row.cero{background:#f5f5f5;color:#666}
-.balance-badge{font-weight:bold;font-size:14px}
+// ---- AUTH FUNCTIONS (expuestas globalmente) ----
+window._fbAuth = auth;
+window._fbDb = db;
+window._fbDoc = doc;
+window._fbSetDoc = setDoc;
+window._fbGetDoc = getDoc;
+window._fbCreateUser = createUserWithEmailAndPassword;
+window._fbSignIn = signInWithEmailAndPassword;
+window._fbSignOut = signOut;
+window._fbResetPassword = sendPasswordResetEmail;
+window._fbOnAuth = onAuthStateChanged;
+window._fbCollection = collection;
+window._fbQuery = query;
+window._fbWhere = where;
+window._fbGetDocs = getDocs;
+window._fbDeleteDoc = deleteDoc;
+window._fbUpdateDoc = updateDoc;
+window._fbArrayUnion = arrayUnion;
+window._fbArrayRemove = arrayRemove;
 
-/* TRANSFERENCIAS */
-.transfer-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#fafafa;border-radius:10px;margin-bottom:6px;font-size:14px;border:1px solid #eee}
-.transfer-arrow{color:#1f7a5c;font-size:18px}
-.transfer-amount{font-weight:bold;color:#1f7a5c;margin-left:auto}
-.sin-transferencias{color:#aaa;font-size:14px;text-align:center;padding:12px 0}
+// Escuchar cambios de sesión
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    window._currentUser = user;
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    document.getElementById('user-email').textContent = user.email;
+    // Mostrar pestaña admin solo para el administrador
+    if (user.email === 'pachadofran@gmail.com') {
+      document.getElementById('btn-admin').style.display = '';
+    }
+    await window.loadUserData(user.uid);
+    // Guardar email→UID en índice para que el admin pueda buscar por email
+    try {
+      const idxRef = doc(db, 'config', 'email_uid_index');
+      const idxSnap = await getDoc(idxRef);
+      const idx = idxSnap.exists() ? idxSnap.data() : {};
+      if (idx[user.email] !== user.uid) {
+        idx[user.email] = user.uid;
+        await setDoc(idxRef, idx);
+      }
+    } catch(e) { console.warn('No se pudo actualizar índice email→UID', e); }
+    window.renderDashboard();
+  } else {
+    window._currentUser = null;
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('app-screen').style.display = 'none';
+  }
+});
 
-/* MODAL */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:center;justify-content:center}
-.modal-overlay.active{display:flex}
-.modal{background:white;border-radius:18px;padding:24px;max-width:380px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.2)}
-.modal h3{font-size:18px;margin-bottom:8px}
-.modal p{font-size:14px;color:#555;margin-bottom:20px}
-.modal-btns{display:flex;gap:10px}
-.modal-btns button{flex:1}
-
-/* TABS */
-.tabs{display:flex;gap:4px;margin-bottom:16px;background:#f0f0f0;border-radius:10px;padding:4px}
-.tab{flex:1;padding:9px;border-radius:8px;background:none;border:none;font-size:14px;color:#666;cursor:pointer;font-weight:bold;transition:background .15s,color .15s}
-.tab.active{background:white;color:#1f7a5c;box-shadow:0 1px 4px rgba(0,0,0,.1)}
-
-/* MODAL EDITAR GASTO */
-.modal-editar{max-width:400px}
-.modal-editar h3{margin-bottom:16px}
-.modal-editar input,.modal-editar select{margin-bottom:10px}
-.modal-editar .modal-btns{margin-top:4px}
-
-/* MODAL PDF */
-.modal-pdf{max-width:480px}
-.modal-pdf h3{margin-bottom:4px}
-.modal-pdf .subtitle{font-size:13px;color:#888;margin-bottom:16px}
-.pdf-persona-row{background:#f9fafb;border-radius:10px;padding:12px;margin-bottom:10px;border:1px solid #eee}
-.pdf-persona-nombre{font-weight:bold;font-size:15px;margin-bottom:8px;color:#1f7a5c}
-.pdf-persona-row input{margin-bottom:6px;font-size:14px;padding:9px 12px}
-.pdf-persona-row input:last-child{margin-bottom:0}
-.modal-pdf .modal-btns{margin-top:16px}
-.btn-export{background:#1f7a5c;color:white;display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:12px;font-size:15px;padding:13px}
-.btn-export:hover{background:#185f47}
-
-@media(max-width:600px){
-.row{flex-direction:column}
-.grupos-grid{grid-template-columns:1fr 1fr}
-}
-@media(max-width:380px){
-.grupos-grid{grid-template-columns:1fr}
-}
-</style>
+  </script>
 </head>
 <body>
 
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <h2>mis finanzas</h2>
+    <p id="auth-subtitle">Ingresá con tu cuenta para continuar</p>
+    <div class="auth-error" id="auth-error"></div>
+    <input class="auth-input" type="email" id="auth-email" placeholder="tu@email.com" autocomplete="email">
+    <input class="auth-input" type="password" id="auth-pass" placeholder="Contraseña" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter') window.authAction()">
+    <div id="auth-pass2-wrap" style="display:none">
+      <input class="auth-input" type="password" id="auth-pass2" placeholder="Repetir contraseña" style="margin-top:0">
+    </div>
+    <button class="btn-auth" onclick="window.authAction()" id="auth-btn">Ingresar</button>
+    <div class="auth-toggle" id="auth-toggle">
+      ¿No tenés cuenta? <span onclick="window.toggleAuthMode()">Registrate</span>
+    </div>
+    <div class="auth-toggle" id="auth-reset-wrap" style="margin-top:-4px">
+      <span onclick="window.resetPassword()">¿Olvidaste tu contraseña?</span>
+    </div>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app-screen">
+
 <header>
-  <div class="logo">💸</div>
-  <h1>Cuenta Clara</h1>
-  <p>Gastos compartidos fáciles</p>
+  <div class="logo"><img src="logo.webp" style="width:38px;height:38px;border-radius:50%;object-fit:cover;object-position:top;margin-right:10px;border:2px solid var(--accent)">finanzapp</div>
+  <div class="data-btns">
+    <div class="user-bar">
+      <span id="user-email"></span>
+      <button class="btn-logout" onclick="window.doLogout()">Salir</button>
+    </div>
+    <button class="btn-export" onclick="exportData()">⬇ Exportar</button>
+    <button class="btn-import" onclick="document.getElementById('import-file').click()">⬆ Importar</button>
+    <input type="file" id="import-file" accept=".json" onchange="importData(event)">
+  </div>
 </header>
 
-<div class="container">
+<!-- Nav fuera del header para evitar bug de position:fixed dentro de sticky+backdrop-filter en iOS Safari -->
+<nav class="app-nav" aria-label="Navegación principal">
+  <button class="active" onclick="showTab('dashboard')" aria-label="Inicio">
+    <span class="nav-icon nav-home" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M3.5 11.2 12 4l8.5 7.2"/><path d="M5.8 10.4v8.1c0 .8.6 1.4 1.4 1.4h3.1v-5.4h3.4v5.4h3.1c.8 0 1.4-.6 1.4-1.4v-8.1"/></svg>
+    </span>
+    <span class="nav-text">Inicio</span>
+  </button>
+  <button class="nav-add" onclick="showTab('gastos')" aria-label="Gastos">
+    <span class="nav-icon nav-gasto" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+    </span>
+    <span class="nav-text">Gasto</span>
+  </button>
+  <button class="nav-ingreso" onclick="showTab('ingresos')" aria-label="Ingresos">
+    <span class="nav-icon nav-income" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M7 17 17 7"/><path d="M9 7h8v8"/><path d="M5 20h14"/></svg>
+    </span>
+    <span class="nav-text">Ingresos</span>
+  </button>
+  <button onclick="showTab('ahorro')" aria-label="Ahorro">
+    <span class="nav-icon nav-save" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M7.2 11.2c-.9-.4-1.7-1.1-1.7-2.2 0-1.6 1.5-2.8 3.5-2.8h5.2c2.9 0 5.3 2.3 5.3 5.2v2.1c0 2.5-2 4.5-4.5 4.5h-.7l-.8 2h-3l-.8-2H8.2c-2.6 0-4.7-2.1-4.7-4.7v-.2c0-1 .8-1.9 1.8-1.9h1.9Z"/><path d="M14.7 9.4h.1"/><path d="M8.5 6.2V4.5c0-.8.7-1.4 1.5-1.1 1 .4 1.8 1.1 2.2 2"/></svg>
+    </span>
+    <span class="nav-text">Ahorro</span>
+  </button>
+  <button onclick="showTab('pendientes')" aria-label="Utilidades">
+    <span class="nav-icon nav-more" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg>
+    </span>
+    <span class="nav-text">Utilidades</span>
+  </button>
+  <button onclick="showTab('ajustes')" aria-label="Ajustes">
+    <span class="nav-icon nav-ajustes" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </span>
+    <span class="nav-text">Ajustes</span>
+  </button>
+  <button id="btn-admin" onclick="showTab('admin')" style="display:none" aria-label="Admin">
+    <span class="nav-icon nav-admin" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7.8C8 5.7 9.7 4 12 4s4 1.7 4 3.8V10"/><path d="M12 14v2"/></svg>
+    </span>
+    <span class="nav-text">Admin</span>
+  </button>
+</nav>
 
-  <!-- VISTA: LISTA DE GRUPOS -->
-  <div id="vista-grupos">
-    <div class="card">
-      <h2>Mis grupos</h2>
-      <div class="grupos-grid" id="grupos-grid"></div>
+<!-- MODAL CATEGORÍAS -->
+<div class="modal-overlay" id="cat-modal">
+  <div class="modal" style="max-width:480px;width:94%;text-align:left">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h3 style="font-family:'DM Serif Display',serif;font-size:1.15rem" id="cat-modal-title">Categorías</h3>
+      <button onclick="closeCatModal()" style="background:none;border:none;color:var(--text3);font-size:1.1rem;cursor:pointer">✕</button>
     </div>
-  </div>
-
-  <!-- VISTA: DENTRO DE UN GRUPO -->
-  <div id="vista-grupo">
-
-    <div class="breadcrumb">
-      <a onclick="volverAGrupos()">← Grupos</a>
-      <span>/</span>
-      <span id="breadcrumb-nombre"></span>
-      <button class="btn-sm btn-secondary" style="margin-left:auto;font-size:13px" onclick="abrirModalPDF()">📄 Generar resumen PDF</button>
+    <!-- Agregar nueva -->
+    <div style="display:flex;gap:8px;margin-bottom:1.2rem">
+      <input type="text" id="cat-modal-input" placeholder="Nueva categoría..." class="form-group input"
+        style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:0.85rem;padding:9px 12px;outline:none"
+        onkeydown="if(event.key==='Enter')addCatFromModal()">
+      <button class="btn-add" style="padding:9px 16px;font-size:0.82rem" onclick="addCatFromModal()">+ Agregar</button>
     </div>
-
-    <!-- Personas -->
-    <div class="card">
-      <h2>Personas</h2>
-      <div class="row">
-        <input id="nuevoNombre" placeholder="Nombre de persona" onkeydown="if(event.key==='Enter')agregarPersona()">
-        <button class="btn-primary" style="width:auto;padding:11px 20px" onclick="agregarPersona()">Agregar</button>
-      </div>
-      <div id="personas"></div>
-    </div>
-
-    <!-- Nuevo gasto -->
-    <div class="card">
-      <h2>Nuevo gasto</h2>
-      <select id="pagadoPor"></select>
-      <input id="descripcion" placeholder="Descripción" onkeydown="if(event.key==='Enter')agregarGasto()">
-      <div class="row">
-        <input id="monto" type="number" placeholder="Monto" min="0" step="0.01" onkeydown="if(event.key==='Enter')agregarGasto()">
-        <button class="btn-primary" style="width:auto;padding:11px 20px" onclick="agregarGasto()">Agregar</button>
-      </div>
-    </div>
-
-    <!-- Tabs: Balance / Transferencias / Historial -->
-    <div class="card">
-      <div class="tabs">
-        <button class="tab active" onclick="mostrarTab('balance',this)">Balance</button>
-        <button class="tab" onclick="mostrarTab('transferencias',this)">Cómo saldar</button>
-        <button class="tab" onclick="mostrarTab('historial',this)">Historial</button>
-      </div>
-      <div id="tab-balance"></div>
-      <div id="tab-transferencias" style="display:none"></div>
-      <div id="tab-historial" style="display:none"></div>
-    </div>
-
+    <!-- Lista -->
+    <div id="cat-modal-list" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
   </div>
 </div>
 
-<!-- Modal confirmación borrar grupo -->
-<div class="modal-overlay" id="modal-borrar-grupo">
+<!-- MODAL CONFIRMACIÓN IMPORTAR -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal">
+    <h3>⚠ Importar datos</h3>
+    <p>Esto va a reemplazar todos tus datos actuales con los del archivo. Esta acción no se puede deshacer.</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="cancelImport()">Cancelar</button>
+      <button class="btn-confirm" onclick="confirmImport()">Sí, importar</button>
+    </div>
+  </div>
+</div>
+
+<main>
+
+<!-- DASHBOARD -->
+<section id="tab-dashboard" class="active">
+  <div class="page-title">
+    Dashboard
+    <small>RESUMEN MENSUAL</small>
+  </div>
+  <div class="month-sel" id="dashMonths"></div>
+  <div class="cards">
+
+    <!-- GASTO -->
+    <div class="card red expandable" onclick="toggleCardPanel('panel-gasto')">
+      <div class="label">Gasto del mes <span class="expand-icon" id="icon-panel-gasto">▾</span></div>
+      <div class="value" id="d-gasto">$0</div>
+      <div class="sub" id="d-gastos-n">0 transacciones</div>
+    </div>
+
+    <!-- INGRESO -->
+    <div class="card green expandable" onclick="toggleCardPanel('panel-ingreso')">
+      <div class="label">Ingreso del mes <span class="expand-icon" id="icon-panel-ingreso">▾</span></div>
+      <div class="value" id="d-ingreso">$0</div>
+    </div>
+
+    <!-- SALDO -->
+    <div class="card yellow expandable" onclick="toggleCardPanel('panel-saldo')">
+      <div class="label">Dinero disponible <span class="expand-icon" id="icon-panel-saldo">▾</span></div>
+      <div class="value" id="d-saldo">$0</div>
+      <div class="sub" id="d-saldo-sub"></div>
+    </div>
+
+    <!-- AHORRO -->
+    <div class="card green expandable" onclick="toggleCardPanel('panel-ahorro')">
+      <div class="label">Ahorro acumulado <span class="expand-icon" id="icon-panel-ahorro">▾</span></div>
+      <div class="value" id="d-ahorro">$0</div>
+    </div>
+
+    <!-- CUOTAS -->
+    <div class="card blue" style="cursor:pointer" onclick="document.getElementById('dash-cuotas-body').scrollIntoView({behavior:'smooth',block:'start'})">
+      <div class="label">Cuotas activas</div>
+      <div class="value" id="d-cuotas">0</div>
+      <div class="sub" id="d-cuotas-sub"></div>
+    </div>
+
+  </div>
+
+  <!-- PANELES EXPANDIBLES -->
+  <div class="card-panel" id="panel-gasto" style="display:none">
+    <div class="panel-title">💸 Detalle de gastos del mes</div>
+    <div id="panel-gasto-body"></div>
+  </div>
+
+  <div class="card-panel" id="panel-ingreso" style="display:none">
+    <div class="panel-title">💵 Detalle de ingresos del mes</div>
+    <div id="panel-ingreso-body"></div>
+  </div>
+
+  <div class="card-panel" id="panel-ahorro" style="display:none">
+    <div class="panel-title">🏦 Ahorro acumulado total por categoría</div>
+    <div id="panel-ahorro-body"></div>
+  </div>
+
+  <div class="card-panel" id="panel-saldo" style="display:none">
+    <div class="panel-title">📊 Composición del disponible del mes</div>
+    <div id="panel-saldo-body"></div>
+  </div>
+
+  <div class="dash-grid">
+    <div class="chart-box">
+      <h3>Gasto por Categoría</h3>
+      <div class="bar-list" id="cat-bars">
+        <div class="empty"><div class="icon">🪣</div>Sin gastos aún</div>
+      </div>
+    </div>
+    <div class="chart-box" style="grid-column: span 2">
+      <h3>Evolución Mensual — Gastos vs Ingresos</h3>
+      <div id="monthly-bars"></div>
+    </div>
+  </div>
+
+  <!-- CUOTAS - seccion permanente -->
+  <div style="max-width:900px;margin:1.5rem auto 0;padding:0 1rem">
+    <div class="chart-box" style="padding:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.2rem 0.8rem;cursor:pointer;user-select:none"
+           onclick="toggleDashCuotas()">
+        <h3 style="margin:0">📅 Cuotas activas</h3>
+        <div style="display:flex;align-items:center;gap:12px;font-family:'DM Mono',monospace;font-size:0.78rem">
+          <span style="color:var(--text3)">activas: <span id="dc-activas" style="color:var(--accent4);font-weight:600">0</span></span>
+          <span style="color:var(--text3)">adeudado: <span id="dc-total" style="color:var(--accent2);font-weight:600">$0</span></span>
+          <span id="dash-cuotas-icon" style="color:var(--text3);font-size:1rem;transition:transform 0.25s;display:inline-block">▾</span>
+        </div>
+      </div>
+      <div id="dash-cuotas-body" style="padding:0 0.4rem 0.8rem;display:none"></div>
+    </div>
+  </div>
+
+</section>
+
+<!-- GASTOS -->
+<section id="tab-gastos">
+  <div class="page-title">
+    Registro de Gastos
+    <small>CARGÁ CADA GASTO CON SU FECHA</small>
+  </div>
+
+  <div class="form-grid">
+    <div class="form-group">
+      <label>Fecha</label>
+      <input type="date" id="g-fecha" onchange="toggleCuotasIfNeeded()">
+    </div>
+    <div class="form-group">
+      <label>Descripción</label>
+      <input type="text" id="g-desc" placeholder="ej: Super Vea">
+    </div>
+    <div class="form-group">
+      <label style="display:flex;justify-content:space-between;align-items:center">
+        Categoría
+        <button type="button" onclick="openCatModal('gastos')" style="background:none;border:none;color:var(--text3);font-size:0.75rem;cursor:pointer;padding:0;font-family:'Sora',sans-serif" title="Gestionar categorías">⚙ gestionar</button>
+      </label>
+      <select id="g-cat" onchange="onCatSelect('g-cat','g-cat-otro','gastos')">
+        <option value="">Seleccionar...</option>
+      </select>
+      <input type="text" id="g-cat-otro" placeholder="Nueva categoría..." style="display:none;margin-top:6px" onblur="saveNewCat('g-cat','g-cat-otro','gastos')">
+    </div>
+    <div class="form-group" id="g-medio-wrap">
+      <label>Medio de Pago</label>
+      <div id="g-medio-container">
+        <!-- Se construye dinámicamente con renderMedioPago() -->
+        <select id="g-medio" onchange="toggleCuotasIfNeeded()">
+          <option value="">Seleccionar...</option>
+          <option>Efectivo</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Monto Total ($)</label>
+      <input type="number" id="g-monto" placeholder="0.00" min="0" step="0.01">
+    </div>
+    <div class="form-group" id="g-ncuotas-wrap" style="display:none">
+      <label>N° Cuotas</label>
+      <input type="number" id="g-ncuotas" placeholder="ej: 1" min="1" max="60">
+    </div>
+    <div class="form-group" id="g-cerro-wrap" style="display:none">
+      <label>¿Cuándo cae la 1ª cuota?</label>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:2px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--text2);cursor:pointer;text-transform:none;letter-spacing:0">
+          <input type="radio" name="g-cuota-inicio" id="g-cerro" value="este" checked style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer">
+          Este mes
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;color:var(--text2);cursor:pointer;text-transform:none;letter-spacing:0">
+          <input type="radio" name="g-cuota-inicio" id="g-no-cerro" value="proximo" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer">
+          El mes que viene
+        </label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notas</label>
+      <input type="text" id="g-notas" placeholder="Opcional">
+    </div>
+    <div class="form-group" style="align-self:flex-end">
+      <button class="btn-add" onclick="addGasto()">+ Agregar</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header">
+      <h3>HISTORIAL DE GASTOS</h3>
+      <div class="filter-row">
+        <select id="filter-mes" onchange="renderGastosTable()">
+          <option value="">Todos los meses</option>
+        </select>
+        <select id="filter-cat" onchange="renderGastosTable()">
+          <option value="">Todas las categorías</option>
+        </select>
+      </div>
+    </div>
+    <div id="gastos-table-body"></div>
+  </div>
+</section>
+
+<!-- INGRESOS -->
+<section id="tab-ingresos">
+  <div class="page-title">
+    Ingresos Mensuales
+    <small>REGISTRÁ LO QUE COBRASTE CADA MES</small>
+  </div>
+
+  <!-- CARD contenedor unificado -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1.5rem;overflow:hidden">
+
+    <!-- Fila: Año / Mes / Sueldo -->
+    <div style="padding:1.4rem 1.4rem 1rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end;border-bottom:1px solid var(--border)">
+      <div class="form-group" style="min-width:150px;flex:2">
+        <label>Fecha</label>
+        <input type="date" id="i-fecha">
+      </div>
+      <div class="form-group" style="min-width:200px;flex:3">
+        <label>Sueldo / Salario</label>
+        <div style="display:flex;gap:6px">
+          <select id="i-sueldo-moneda" style="width:90px;flex-shrink:0;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:0.82rem;padding:9px 8px;outline:none">
+            <option value="ARS">$ ARS</option>
+            <option value="USD">u$s USD</option>
+          </select>
+          <input type="number" id="i-sueldo" placeholder="0.00" min="0" step="0.01" style="flex:1">
+        </div>
+      </div>
+      <div class="form-group" style="min-width:160px;flex:2">
+        <label>Concepto</label>
+        <select id="i-sueldo-concepto" onchange="toggleConceptoOtro()" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:0.85rem;padding:9px 12px;outline:none;width:100%">
+          <option value="Sueldo">💼 Sueldo</option>
+          <option value="Freelance">💻 Freelance</option>
+          <option value="Alquiler">🏠 Alquiler</option>
+          <option value="Facturación">🧾 Facturación</option>
+          <option value="Inversión">📈 Inversión</option>
+          <option value="Otros">✏ Otros...</option>
+        </select>
+        <input type="text" id="i-sueldo-concepto-otro" placeholder="Escribí el concepto" style="display:none;margin-top:6px;width:100%;background:var(--bg);border:1px solid var(--accent);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:0.85rem;padding:9px 12px;outline:none;box-sizing:border-box">
+        <div id="conceptos-custom-lista" style="display:none;margin-top:6px"></div>
+      </div>
+      <div class="form-group" style="min-width:160px;flex:2">
+        <label>Destino</label>
+        <div id="i-sueldo-destino-container">
+          <select id="i-sueldo-destino" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:0.85rem;padding:9px 12px;outline:none;width:100%">
+            <option value="">Seleccionar...</option>
+            <option value="Efectivo">Efectivo</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Fila: botón guardar todo -->
+    <div style="padding:1rem 1.4rem;display:flex;justify-content:flex-end;background:var(--surface2);border-radius:0 0 var(--radius) var(--radius)">
+      <button class="btn-add" onclick="addIngreso()" style="padding:10px 28px;font-size:0.88rem">
+        ✓ Guardar ingreso del mes
+      </button>
+    </div>
+  </div>
+
+  <div class="table-wrap" style="margin-bottom:1.2rem">
+    <div class="table-header" style="display:flex;justify-content:space-between;align-items:center">
+      <h3>💰 SALDO POR CUENTA</h3>
+      <button onclick="borrarTodosLosAjustes()" style="font-size:0.7rem;padding:4px 10px;background:rgba(255,79,94,0.12);border:1px solid rgba(255,79,94,0.35);color:var(--accent2);border-radius:8px;cursor:pointer">🗑 Borrar ajustes</button>
+    </div>
+    <div style="padding:0.6rem 1.2rem;background:var(--surface2);font-size:0.7rem;color:var(--text3);border-bottom:1px solid var(--border)">
+      Saldo acumulado desde tus registros + saldo inicial configurado en Ajustes. Usá <strong style="color:var(--accent3)">Ajustar</strong> para corregir diferencias.
+    </div>
+    <div id="saldo-cuentas-body"></div>
+  </div>
+
+  <div class="table-wrap" style="margin-bottom:1.2rem">
+    <div class="table-header" style="display:flex;justify-content:space-between;align-items:center">
+      <h3>🔧 HISTORIAL DE AJUSTES</h3>
+    </div>
+    <div id="ajustes-historial-body"></div>
+  </div>
+
+  <div class="table-wrap" style="margin-top:1.2rem">
+    <div class="table-header"><h3>HISTORIAL DE INGRESOS</h3></div>
+    <div id="ingresos-table-body"></div>
+  </div>
+</section>
+
+
+<!-- AHORRO -->
+<section id="tab-ahorro">
+  <div class="page-title">
+    Ahorro Mensual
+    <small>REGISTRÁ CUÁNTO AHORRÁS POR MES</small>
+  </div>
+
+  <div class="ingreso-grid">
+    <div class="form-group">
+      <label>Fecha</label>
+      <input type="date" id="a-fecha">
+    </div>
+    <div class="form-group">
+      <label>Moneda</label>
+      <select id="a-moneda">
+        <option value="ARS">$ Pesos (ARS)</option>
+        <option value="USD">u$s Dólares (USD)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Monto Ahorrado</label>
+      <input type="number" id="a-monto" placeholder="0.00" min="0" step="0.01">
+    </div>
+    <div class="form-group">
+      <label style="display:flex;justify-content:space-between;align-items:center">
+        Dónde lo guardás
+        <button type="button" onclick="openCatModal('ahorro')" style="background:none;border:none;color:var(--text3);font-size:0.75rem;cursor:pointer;padding:0;font-family:'Sora',sans-serif">⚙ gestionar</button>
+      </label>
+      <select id="a-tipo" onchange="onCatSelect('a-tipo','a-tipo-otro','ahorro')">
+        <option value="">Seleccionar...</option>
+      </select>
+      <input type="text" id="a-tipo-otro" placeholder="Nueva categoría..." style="display:none;margin-top:6px" onblur="saveNewCat('a-tipo','a-tipo-otro','ahorro')">
+    </div>
+    <div class="form-group">
+      <label>Origen (de dónde sale)</label>
+      <div id="a-origen-container">
+        <select id="a-origen" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:0.85rem;padding:9px 12px;outline:none;width:100%">
+          <option value="">Seleccionar...</option>
+          <option value="Efectivo">Efectivo</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notas</label>
+      <input type="text" id="a-notas" placeholder="Opcional">
+    </div>
+    <div class="form-group" style="align-self:flex-end">
+      <button class="btn-add" onclick="addAhorro()">+ Guardar</button>
+    </div>
+  </div>
+
+  <div class="cards" style="grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); margin-bottom:1.5rem">
+    <div class="card green">
+      <div class="label">Total Ahorrado ARS</div>
+      <div class="value" id="a-total-ars">$0</div>
+    </div>
+    <div class="card yellow">
+      <div class="label">Total Ahorrado USD</div>
+      <div class="value" id="a-total-usd">u$s 0</div>
+    </div>
+    <div class="card blue">
+      <div class="label">Promedio Mensual ARS</div>
+      <div class="value" id="a-promedio">$0</div>
+    </div>
+    <div class="card yellow">
+      <div class="label">Mejor Mes</div>
+      <div class="value" id="a-mejor">$0</div>
+      <div class="sub" id="a-mejor-mes">—</div>
+    </div>
+  </div>
+
+  <div class="table-wrap" style="margin-bottom:1.2rem">
+    <div class="table-header"><h3>💼 MIS FONDOS</h3></div>
+    <div id="fondos-body"></div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header"><h3>HISTORIAL DE AHORRO</h3></div>
+    <div id="ahorro-table-body"></div>
+  </div>
+</section>
+
+<!-- PENDIENTES -->
+<section id="tab-pendientes">
+  <div class="page-title">
+    Utilidades
+    <small>HERRAMIENTAS ADICIONALES</small>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:1.2rem;flex-wrap:wrap;align-items:center">
+    <button class="month-btn" id="util-tab-lista" onclick="showUtilSubtab('lista',this)">Lista</button>
+    <button class="month-btn" id="util-tab-compartir" onclick="showUtilSubtab('compartir',this)">Compartir gastos</button>
+  </div>
+
+  <div id="util-lista" style="display:none">
+
+  <div class="form-grid" style="margin-bottom:1.5rem">
+    <div class="form-group">
+      <label>Concepto</label>
+      <input type="text" id="p-desc" placeholder="ej: Pagar tarjeta Visa">
+    </div>
+    <div class="form-group">
+      <label>Monto estimado ($)</label>
+      <input type="number" id="p-monto" placeholder="Opcional" min="0" step="0.01">
+    </div>
+    <input type="hidden" id="p-vence" value="">
+    <input type="hidden" id="p-prio" value="normal">
+    <div class="form-group" style="align-self:flex-end">
+      <button class="btn-add" onclick="addPendiente()">+ Agregar</button>
+    </div>
+  </div>
+
+  <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:1.5rem">
+    <div class="card yellow">
+      <div class="label">Pendientes</div>
+      <div class="value" id="p-count">0</div>
+    </div>
+    <div class="card green">
+      <div class="label">Completados</div>
+      <div class="value" id="p-done">0</div>
+    </div>
+    <div class="card red">
+      <div class="label">Total estimado</div>
+      <div class="value" id="p-total">$0</div>
+      <div class="sub">solo pendientes</div>
+    </div>
+    <div class="card blue">
+      <div class="label">Vencidos / hoy</div>
+      <div class="value" id="p-vencidos">0</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
+    <span style="font-size:0.72rem;color:var(--text3);font-weight:600;letter-spacing:0.8px;text-transform:uppercase">Filtrar:</span>
+    <button class="month-btn active" id="pf-todos" onclick="setPendienteFiltro('todos',this)">Todos</button>
+    <button class="month-btn" id="pf-pendientes" onclick="setPendienteFiltro('pendientes',this)">Pendientes</button>
+    <button class="month-btn" id="pf-completados" onclick="setPendienteFiltro('completados',this)">Completados</button>
+    <div style="margin-left:auto">
+      <button class="btn-secondary" onclick="limpiarCompletados()" style="border-color:var(--accent2);color:var(--accent2)">🗑 Limpiar completados</button>
+    </div>
+  </div>
+
+  <div id="pendientes-list"></div>
+
+  </div>
+
+  <!-- COMPARTIR GASTOS (Cuenta Clara) -->
+  <div id="util-compartir" style="display:none">
+
+    <!-- VISTA GRUPOS -->
+    <div id="cc-vista-grupos">
+      <div class="table-wrap" style="margin-bottom:1.2rem">
+        <div class="table-header"><h3>💸 MIS GRUPOS</h3></div>
+        <div id="cc-grupos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:1.2rem"></div>
+      </div>
+    </div>
+
+    <!-- VISTA GRUPO -->
+    <div id="cc-vista-grupo" style="display:none">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.2rem;flex-wrap:wrap">
+        <button class="btn-secondary" onclick="ccVolverAGrupos()">← Grupos</button>
+        <h3 style="font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--text2);margin:0" id="cc-breadcrumb-nombre"></h3>
+        <span id="cc-badge-compartido" class="cc-shared-badge" style="display:none">👥 Compartido</span>
+        <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-secondary" onclick="ccAbrirModalCompartir()">👥 Compartir</button>
+          <button class="btn-secondary" onclick="ccAbrirModalPDF()">📄 Generar resumen PDF</button>
+        </div>
+      </div>
+
+      <!-- Miembros (solo grupos compartidos) -->
+      <div id="cc-miembros-wrap" style="display:none;margin-bottom:1.2rem">
+        <div class="table-wrap">
+          <div class="table-header"><h3>👥 MIEMBROS</h3></div>
+          <div id="cc-miembros-list" style="padding:1rem 1.2rem"></div>
+        </div>
+      </div>
+
+      <!-- Personas -->
+      <div class="form-grid" style="margin-bottom:1.2rem">
+        <div class="form-group">
+          <label>Agregar persona</label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="cc-nuevoNombre" placeholder="Nombre" onkeydown="if(event.key==='Enter')ccAgregarPersona()">
+            <button class="btn-add" style="width:auto;padding:9px 18px" onclick="ccAgregarPersona()">+ Agregar</button>
+          </div>
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Personas</label>
+          <div id="cc-personas"></div>
+        </div>
+      </div>
+
+      <!-- Nuevo gasto -->
+      <div class="form-grid" style="margin-bottom:1.2rem">
+        <div class="form-group">
+          <label>Pagado por</label>
+          <select id="cc-pagadoPor"></select>
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <input type="text" id="cc-descripcion" placeholder="ej: Carne" onkeydown="if(event.key==='Enter')ccAgregarGasto()">
+        </div>
+        <div class="form-group">
+          <label>Monto</label>
+          <input type="number" id="cc-monto" placeholder="0.00" min="0" step="0.01" onkeydown="if(event.key==='Enter')ccAgregarGasto()">
+        </div>
+        <div class="form-group" style="align-self:flex-end">
+          <button class="btn-add" onclick="ccAgregarGasto()">+ Agregar gasto</button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
+        <button class="month-btn active" id="cc-tab-balance" onclick="ccMostrarTab('balance',this)">Balance</button>
+        <button class="month-btn" id="cc-tab-transferencias" onclick="ccMostrarTab('transferencias',this)">Cómo saldar</button>
+        <button class="month-btn" id="cc-tab-historial" onclick="ccMostrarTab('historial',this)">Historial</button>
+      </div>
+      <div class="table-wrap">
+        <div id="cc-panel-balance" style="padding:1.2rem"></div>
+        <div id="cc-panel-transferencias" style="padding:1.2rem;display:none"></div>
+        <div id="cc-panel-historial" style="padding:0;display:none"></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- AJUSTES -->
+<section id="tab-ajustes">
+  <div style="max-width:900px;margin:0 auto;padding:2rem 1.5rem">
+    <div class="page-title">Ajustes</div>
+
+    <!-- Exportar/Importar — en desktop está en el header, en mobile aparece acá -->
+    <div class="card data-io-mobile" style="margin-bottom:1.5rem;display:none">
+      <div style="font-size:0.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px">💾 Datos</div>
+      <div style="display:flex;gap:10px">
+        <button class="btn-secondary" onclick="exportData()" style="flex:1;justify-content:center">⬇ Exportar</button>
+        <button class="btn-secondary" onclick="document.getElementById('import-file').click()" style="flex:1;justify-content:center">⬆ Importar</button>
+      </div>
+    </div>
+
+    <!-- Bot de Telegram -->
+    <div class="card" style="margin-bottom:1.5rem">
+      <div class="card-title" style="margin-bottom:0.3rem">🤖 Bot de Telegram</div>
+      <p style="font-size:0.82rem;color:var(--text3);margin-bottom:1.2rem">Registrá gastos e ingresos desde Telegram, por texto o audio. Tocá el botón y después «Iniciar» en el chat: tu cuenta se vincula sola.</p>
+      <button class="btn-add" style="padding:10px 18px;font-size:0.85rem" onclick="abrirBotTelegram()">✈ Conectar con Telegram</button>
+    </div>
+
+    <!-- Medios de pago -->
+    <div class="card" style="margin-bottom:1.5rem">
+      <div class="card-title" style="margin-bottom:0.3rem">💳 Mis medios de pago</div>
+      <p style="font-size:0.82rem;color:var(--text3);margin-bottom:1.2rem">Agregá tus tarjetas, cuentas y billeteras para usarlas al registrar gastos.</p>
+
+      <!-- Form nuevo medio -->
+      <div style="margin-bottom:1.2rem">
+        <!-- Paso 1: banco -->
+        <div class="form-group" style="max-width:320px;margin-bottom:12px">
+          <label>Banco / Institución</label>
+          <input type="text" id="tc-banco" placeholder="ej: Santander, Mercado Pago" oninput="renderProductosBanco()">
+        </div>
+        <!-- Paso 2: productos del banco -->
+        <div id="tc-productos-wrap" style="display:none">
+          <div style="font-size:0.7rem;font-weight:600;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:10px">¿Qué tenés de este banco?</div>
+          <div id="tc-productos-lista" style="display:flex;flex-direction:column;gap:10px"></div>
+          <button class="btn-add" onclick="agregarMedioPago()" style="margin-top:14px;width:100%">+ Agregar</button>
+        </div>
+      </div>
+
+      <!-- Lista medios -->
+      <div id="tc-lista"></div>
+    </div>
+
+    <!-- Saldo inicial por cuenta -->
+    <div class="card" style="margin-bottom:1.5rem">
+      <div class="card-title" style="margin-bottom:0.3rem">💰 Saldo inicial por cuenta</div>
+      <p style="font-size:0.82rem;color:var(--text3);margin-bottom:1.2rem">
+        Ingresá cuánto tenías en cada cuenta <strong style="color:var(--text2)">antes de empezar a usar la app</strong>. Se suma al balance general sin contar como ingreso mensual.
+      </p>
+      <div id="saldo-inicial-lista"></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ADMIN -->
+<section id="tab-admin">
+  <div style="max-width:1100px;margin:0 auto;padding:2rem 1.5rem">
+    <div class="page-title">
+      Panel de Administración
+      <small>SOLO VISIBLE PARA pachadofran@gmail.com</small>
+    </div>
+
+    <!-- Agregar email habilitado -->
+    <div class="form-grid" style="margin-bottom:1.5rem;max-width:600px">
+      <div class="form-group" style="flex:1">
+        <label>Email a habilitar</label>
+        <input type="email" id="admin-email-input" placeholder="usuario@email.com"
+          onkeydown="if(event.key==='Enter')addEmailHabilitado()">
+      </div>
+      <div class="form-group" style="align-self:flex-end">
+        <button class="btn-add" onclick="addEmailHabilitado()">+ Habilitar</button>
+      </div>
+    </div>
+
+    <!-- Cards resumen -->
+    <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:1.5rem;max-width:600px">
+      <div class="card green">
+        <div class="label">Habilitados</div>
+        <div class="value" id="admin-count">0</div>
+      </div>
+      <div class="card blue">
+        <div class="label">Registro</div>
+        <div class="value" style="font-size:1rem" id="admin-modo">Abierto</div>
+        <div class="sub">solo habilitados</div>
+      </div>
+    </div>
+
+    <!-- Lista de emails habilitados -->
+    <div class="table-wrap" style="max-width:600px">
+      <div class="table-header"><h3>EMAILS HABILITADOS PARA REGISTRARSE</h3></div>
+      <div id="admin-email-list"></div>
+    </div>
+
+    <!-- Diagnóstico de datos -->
+    <div style="margin-top:2rem;max-width:600px">
+      <div class="table-header" style="border-radius:var(--radius) var(--radius) 0 0"><h3>🔍 DIAGNÓSTICO DE DATOS EN FIRESTORE</h3></div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:1rem">
+        <p style="font-size:0.78rem;color:var(--text3);margin-bottom:1rem">Lee directamente Firestore para cada usuario y muestra cuántos registros tiene guardados.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
+          <button class="btn-add" style="padding:8px 16px;font-size:0.8rem" onclick="diagUsuario(window._currentUser?.uid, 'pachadofran@gmail.com')">🔍 Ver mis datos</button>
+        </div>
+        <div id="diag-result" style="font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--text2);white-space:pre-wrap;background:var(--bg);border-radius:10px;padding:1rem;min-height:60px"></div>
+        <div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-secondary" style="padding:8px 14px;font-size:0.78rem;border-color:var(--accent4);color:var(--accent4)" onclick="recuperarPendientes()">♻ Recuperar memos de localStorage</button>
+          <button class="btn-secondary" style="padding:8px 14px;font-size:0.78rem;border-color:var(--accent2);color:var(--accent2)" onclick="verFirestoreRaw()">📦 Ver JSON crudo</button>
+          <button class="btn-secondary" style="padding:8px 14px;font-size:0.78rem;border-color:var(--accent3);color:var(--accent3)" onclick="limpiarAjustesViejos()">🧹 Limpiar ajustes viejos</button>
+        </div>
+        <div id="diag-raw" style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--text3);white-space:pre-wrap;background:var(--bg);border-radius:10px;padding:1rem;margin-top:8px;display:none;max-height:300px;overflow-y:auto"></div>
+      </div>
+
+      <!-- BORRAR DATOS DE USUARIO -->
+      <div class="table-wrap" style="margin-top:1.2rem;border:1px solid rgba(255,79,94,0.3)">
+        <div class="table-header" style="background:rgba(255,79,94,0.08)">
+          <h3 style="color:var(--accent2)">&#128465; BORRAR DATOS DE USUARIO</h3>
+        </div>
+        <div style="padding:1.2rem;display:flex;flex-direction:column;gap:12px">
+          <div style="font-size:0.75rem;color:var(--text3)">Borra todos los registros del usuario indicado. La cuenta de Firebase <strong>no se elimina</strong>.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input id="admin-borrar-email" type="email" placeholder="email del usuario a resetear"
+              style="flex:1;min-width:220px;background:var(--bg);border:1px solid rgba(255,79,94,0.5);border-radius:10px;color:var(--text);font-family:'Sora',sans-serif;font-size:16px;padding:12px 14px;outline:none;min-height:46px">
+            <button onclick="borrarDatosUsuario()"
+              style="background:rgba(255,79,94,0.15);border:1px solid rgba(255,79,94,0.6);color:var(--accent2);border-radius:10px;padding:12px 18px;font-size:0.88rem;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif;min-height:44px;touch-action:manipulation">
+              Borrar datos
+            </button>
+          </div>
+          <div id="admin-borrar-result" style="font-size:0.8rem;min-height:20px"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="notif" id="notif">&#10003; <span id="notif-msg"></span></div>
+
+<div class="modal-overlay" id="import-modal">
+  <div class="modal">
+    <div class="modal-title">Importar datos</div>
+    <div class="modal-body">Esto reemplazara todos tus datos actuales. Confirmas?</div>
+    <div class="modal-actions">
+      <button class="btn-confirm" onclick="confirmImport()">Si, importar</button>
+      <button class="btn-cancel" onclick="cancelImport()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="cat-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">Categorias</div>
+    <div id="cat-modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeCatModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUENTA CLARA: MODAL BORRAR GRUPO -->
+<div class="modal-overlay" id="cc-modal-borrar-grupo">
   <div class="modal">
     <h3>Borrar grupo</h3>
-    <p id="modal-msg">¿Seguro que querés borrar este grupo? Se perderán todos los gastos.</p>
+    <p id="cc-modal-borrar-grupo-msg">¿Seguro que querés borrar este grupo? Se perderán todos los gastos.</p>
     <div class="modal-btns">
-      <button class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
-      <button class="btn-danger" onclick="confirmarBorrarGrupo()">Borrar</button>
+      <button class="btn-cancel" onclick="ccCerrarModal()">Cancelar</button>
+      <button class="btn-confirm" style="background:var(--accent2);color:#fff" onclick="ccConfirmarBorrarGrupo()">Borrar</button>
     </div>
   </div>
 </div>
 
-<!-- Modal confirmación borrar persona -->
-<div class="modal-overlay" id="modal-borrar-persona">
+<!-- CUENTA CLARA: MODAL BORRAR PERSONA -->
+<div class="modal-overlay" id="cc-modal-borrar-persona">
   <div class="modal">
     <h3>Eliminar persona</h3>
-    <p id="modal-persona-msg">¿Seguro? Se eliminarán también todos los gastos registrados a nombre de esta persona.</p>
+    <p id="cc-modal-borrar-persona-msg">¿Seguro? Se eliminarán también todos los gastos registrados a nombre de esta persona.</p>
     <div class="modal-btns">
-      <button class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
-      <button class="btn-danger" onclick="confirmarBorrarPersona()">Eliminar</button>
+      <button class="btn-cancel" onclick="ccCerrarModal()">Cancelar</button>
+      <button class="btn-confirm" style="background:var(--accent2);color:#fff" onclick="ccConfirmarBorrarPersona()">Eliminar</button>
     </div>
   </div>
 </div>
 
-<!-- Modal editar gasto -->
-<div class="modal-overlay" id="modal-editar-gasto">
-  <div class="modal modal-editar">
+<!-- CUENTA CLARA: MODAL EDITAR GASTO -->
+<div class="modal-overlay" id="cc-modal-editar-gasto">
+  <div class="modal" style="max-width:420px;text-align:left">
     <h3>Editar gasto</h3>
-    <select id="edit-pagadoPor"></select>
-    <input id="edit-descripcion" placeholder="Descripción">
-    <input id="edit-monto" type="number" placeholder="Monto" min="0" step="0.01">
+    <div class="form-group" style="margin-bottom:10px">
+      <label>Pagado por</label>
+      <select id="cc-edit-pagadoPor"></select>
+    </div>
+    <div class="form-group" style="margin-bottom:10px">
+      <label>Descripción</label>
+      <input type="text" id="cc-edit-descripcion">
+    </div>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>Monto</label>
+      <input type="number" id="cc-edit-monto" min="0" step="0.01">
+    </div>
     <div class="modal-btns">
-      <button class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
-      <button class="btn-primary" onclick="confirmarEditarGasto()">Guardar</button>
+      <button class="btn-cancel" onclick="ccCerrarModal()">Cancelar</button>
+      <button class="btn-confirm" onclick="ccConfirmarEditarGasto()">Guardar</button>
     </div>
   </div>
 </div>
 
-<!-- Modal PDF: datos bancarios -->
-<div class="modal-overlay" id="modal-pdf">
-  <div class="modal modal-pdf" style="max-height:90vh;overflow-y:auto">
-    <h3>Generar resumen PDF</h3>
-    <p class="subtitle">Completá los datos bancarios de cada persona para incluirlos en el PDF. Son opcionales.</p>
-    <div id="pdf-personas-form"></div>
+<!-- CUENTA CLARA: MODAL COMPARTIR -->
+<div class="modal-overlay" id="cc-modal-compartir">
+  <div class="modal" style="max-width:420px;text-align:left">
+    <h3>Compartir grupo</h3>
+    <p id="cc-modal-compartir-info">Invitá a otra persona por su email de finanzapp. Va a poder ver el grupo y agregar/editar gastos.</p>
+    <div class="form-group" style="margin-bottom:14px">
+      <label>Email a invitar</label>
+      <input type="email" id="cc-invitar-email" placeholder="persona@email.com" onkeydown="if(event.key==='Enter')ccInvitar()">
+    </div>
     <div class="modal-btns">
-      <button class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
-      <button class="btn-primary" onclick="generarPDF()">📄 Descargar PDF</button>
+      <button class="btn-cancel" onclick="ccCerrarModal()">Cerrar</button>
+      <button class="btn-confirm" onclick="ccInvitar()">Invitar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUENTA CLARA: MODAL PDF -->
+<div class="modal-overlay" id="cc-modal-pdf">
+  <div class="modal" style="max-width:480px;max-height:90vh;overflow-y:auto;text-align:left">
+    <h3>Generar resumen PDF</h3>
+    <p style="margin-bottom:1rem">Completá los datos bancarios de cada persona para incluirlos en el PDF. Son opcionales.</p>
+    <div id="cc-pdf-personas-form"></div>
+    <div class="modal-btns" style="margin-top:1rem">
+      <button class="btn-cancel" onclick="ccCerrarModal()">Cancelar</button>
+      <button class="btn-confirm" onclick="ccGenerarPDF()">📄 Descargar PDF</button>
     </div>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script>
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
-
-// ── ESTADO ──────────────────────────────────────────────
-// grupos: [{id, nombre, personas:[], gastos:[{id,pagadoPor,descripcion,monto}]}]
-let grupos = JSON.parse(localStorage.getItem('cc_grupos')) || [];
-let grupoActualId = null;
-let pendienteBorrarGrupoId = null;
-let pendienteBorrarPersona = null;
-let gastoEditandoId = null;
-
-function guardar(){
-  localStorage.setItem('cc_grupos', JSON.stringify(grupos));
-}
-
-function grupoActual(){
-  return grupos.find(g=>g.id===grupoActualId);
-}
-
-// ── GRUPOS ───────────────────────────────────────────────
-function renderGrupos(){
-  const grid = document.getElementById('grupos-grid');
-  let html = '';
-  grupos.forEach(g=>{
-    const total = g.gastos.reduce((s,x)=>s+x.monto,0);
-    html += `
-    <div class="grupo-card" onclick="abrirGrupo('${g.id}')">
-      <button class="gc-del" onclick="event.stopPropagation();pedirBorrarGrupo('${g.id}')" title="Borrar grupo">✕</button>
-      <div class="gc-nombre">${esc(g.nombre)}</div>
-      <div class="gc-info">${g.personas.length} persona${g.personas.length!==1?'s':''} · $${total.toFixed(2)}</div>
-    </div>`;
-  });
-  html += `<div class="grupo-card nuevo-grupo" onclick="crearGrupo()">
-    <span>＋</span><span>Nuevo grupo</span>
-  </div>`;
-  grid.innerHTML = html;
-}
-
-function crearGrupo(){
-  const nombre = prompt('Nombre del grupo (ej: Viaje a Bariloche):');
-  if(!nombre || !nombre.trim()) return;
-  const g = {id: Date.now().toString(), nombre: nombre.trim(), personas:[], gastos:[]};
-  grupos.push(g);
-  guardar();
-  renderGrupos();
-  abrirGrupo(g.id);
-}
-
-function pedirBorrarGrupo(id){
-  pendienteBorrarGrupoId = id;
-  const g = grupos.find(x=>x.id===id);
-  document.getElementById('modal-msg').textContent = `¿Seguro que querés borrar "${g.nombre}"? Se perderán todos los gastos.`;
-  document.getElementById('modal-borrar-grupo').classList.add('active');
-}
-
-function confirmarBorrarGrupo(){
-  grupos = grupos.filter(g=>g.id!==pendienteBorrarGrupoId);
-  pendienteBorrarGrupoId = null;
-  guardar();
-  cerrarModal();
-  renderGrupos();
-}
-
-function abrirGrupo(id){
-  grupoActualId = id;
-  const g = grupoActual();
-  document.getElementById('vista-grupos').style.display='none';
-  document.getElementById('vista-grupo').style.display='block';
-  document.getElementById('breadcrumb-nombre').textContent = g.nombre;
-  mostrarTab('balance', document.querySelector('.tab'));
-  renderPersonas();
-  renderHistorial();
-  calcular();
-}
-
-function volverAGrupos(){
-  grupoActualId = null;
-  document.getElementById('vista-grupos').style.display='block';
-  document.getElementById('vista-grupo').style.display='none';
-  renderGrupos();
-}
-
-// ── PERSONAS ─────────────────────────────────────────────
-function renderPersonas(){
-  const g = grupoActual();
-  const cont = document.getElementById('personas');
-  const select = document.getElementById('pagadoPor');
-  cont.innerHTML = g.personas.length===0
-    ? '<p style="color:#aaa;font-size:13px;margin-top:4px">Agregá personas para empezar.</p>'
-    : g.personas.map(p=>`
-        <span class="persona-chip">
-          ${esc(p)}
-          <button onclick="pedirBorrarPersona('${esc(p)}')" title="Eliminar">✕</button>
-        </span>`).join('');
-  select.innerHTML = g.personas.map(p=>`<option>${esc(p)}</option>`).join('');
-}
-
-function agregarPersona(){
-  const input = document.getElementById('nuevoNombre');
-  const nombre = input.value.trim();
-  if(!nombre) return;
-  const g = grupoActual();
-  if(g.personas.includes(nombre)){alert('Ya existe esa persona.');return;}
-  g.personas.push(nombre);
-  input.value='';
-  guardar();
-  renderPersonas();
-  calcular();
-}
-
-function pedirBorrarPersona(nombre){
-  pendienteBorrarPersona = nombre;
-  document.getElementById('modal-persona-msg').textContent =
-    `¿Eliminar a "${nombre}"? Se eliminarán también todos sus gastos registrados.`;
-  document.getElementById('modal-borrar-persona').classList.add('active');
-}
-
-function confirmarBorrarPersona(){
-  const g = grupoActual();
-  g.gastos = g.gastos.filter(x=>x.pagadoPor!==pendienteBorrarPersona);
-  g.personas = g.personas.filter(p=>p!==pendienteBorrarPersona);
-  pendienteBorrarPersona = null;
-  guardar();
-  cerrarModal();
-  renderPersonas();
-  renderHistorial();
-  calcular();
-}
-
-// ── GASTOS ───────────────────────────────────────────────
-function agregarGasto(){
-  const g = grupoActual();
-  if(g.personas.length<2){alert('Agregá al menos 2 personas primero.');return;}
-  const pagadoPor = document.getElementById('pagadoPor').value;
-  const descripcion = document.getElementById('descripcion').value.trim();
-  const monto = parseFloat(document.getElementById('monto').value);
-  if(!descripcion||!monto||monto<=0) return;
-  g.gastos.push({id:Date.now().toString(), pagadoPor, descripcion, monto});
-  document.getElementById('descripcion').value='';
-  document.getElementById('monto').value='';
-  guardar();
-  renderHistorial();
-  calcular();
-}
-
-function borrarGasto(id){
-  const g = grupoActual();
-  g.gastos = g.gastos.filter(x=>x.id!==id);
-  guardar();
-  renderHistorial();
-  calcular();
-}
-
-function abrirEditarGasto(id){
-  const g = grupoActual();
-  const gasto = g.gastos.find(x=>x.id===id);
-  if(!gasto) return;
-  gastoEditandoId = id;
-
-  // Poblar select con personas del grupo
-  const sel = document.getElementById('edit-pagadoPor');
-  sel.innerHTML = g.personas.map(p=>`<option${p===gasto.pagadoPor?' selected':''}>${esc(p)}</option>`).join('');
-
-  document.getElementById('edit-descripcion').value = gasto.descripcion;
-  document.getElementById('edit-monto').value = gasto.monto;
-  document.getElementById('modal-editar-gasto').classList.add('active');
-}
-
-function confirmarEditarGasto(){
-  const g = grupoActual();
-  const gasto = g.gastos.find(x=>x.id===gastoEditandoId);
-  if(!gasto) return;
-
-  const pagadoPor = document.getElementById('edit-pagadoPor').value;
-  const descripcion = document.getElementById('edit-descripcion').value.trim();
-  const monto = parseFloat(document.getElementById('edit-monto').value);
-
-  if(!descripcion || !monto || monto<=0) return;
-
-  gasto.pagadoPor = pagadoPor;
-  gasto.descripcion = descripcion;
-  gasto.monto = monto;
-  gastoEditandoId = null;
-
-  guardar();
-  cerrarModal();
-  renderHistorial();
-  calcular();
-}
-
-function renderHistorial(){
-  const g = grupoActual();
-  const div = document.getElementById('tab-historial');
-  if(g.gastos.length===0){
-    div.innerHTML='<p class="sin-gastos">No hay gastos aún.</p>';return;
-  }
-  div.innerHTML = g.gastos.slice().reverse().map(x=>`
-    <div class="gasto-row">
-      <div class="gasto-info">
-        <strong>${esc(x.pagadoPor)}</strong>
-        <div class="gasto-desc">${esc(x.descripcion)}</div>
-      </div>
-      <div class="gasto-actions">
-        <span class="gasto-monto">$${x.monto.toFixed(2)}</span>
-        <button class="btn-sm btn-ghost" onclick="abrirEditarGasto('${x.id}')" title="Editar gasto">✏️</button>
-        <button class="btn-sm btn-ghost" onclick="borrarGasto('${x.id}')" title="Borrar gasto">🗑</button>
-      </div>
-    </div>`).join('');
-}
-
-// ── CÁLCULOS ─────────────────────────────────────────────
-function calcular(){
-  const g = grupoActual();
-  const divBal = document.getElementById('tab-balance');
-  const divTrans = document.getElementById('tab-transferencias');
-
-  if(g.personas.length===0){
-    divBal.innerHTML='<p class="sin-gastos">Agregá personas para ver el balance.</p>';
-    divTrans.innerHTML='';
-    return;
-  }
-
-  let total=0;
-  let aportes={};
-  g.personas.forEach(p=>aportes[p]=0);
-  g.gastos.forEach(x=>{
-    total+=x.monto;
-    if(aportes[x.pagadoPor]!==undefined) aportes[x.pagadoPor]+=x.monto;
-  });
-
-  const porPersona = total/g.personas.length;
-
-  // Balance
-  let htmlBal = `<div class="balance-total">Total: $${total.toFixed(2)}</div>`;
-  g.personas.forEach(p=>{
-    const bal = aportes[p]-porPersona;
-    const cls = bal>0.005?'pos':bal<-0.005?'neg':'cero';
-    const txt = bal>0.005?`puso $${bal.toFixed(2)} de más`
-               :bal<-0.005?`debe $${Math.abs(bal).toFixed(2)}`
-               :`está al día`;
-    htmlBal+=`<div class="balance-row ${cls}"><span>${esc(p)}</span><span class="balance-badge">${txt}</span></div>`;
-  });
-  divBal.innerHTML=htmlBal;
-
-  // Transferencias mínimas (greedy)
-  const transferencias = calcularTransferencias(g.personas, aportes, porPersona);
-  if(transferencias.length===0){
-    divTrans.innerHTML='<p class="sin-transferencias">Todos están al día. ¡No hay nada que saldar!</p>';
-  } else {
-    divTrans.innerHTML = transferencias.map(t=>`
-      <div class="transfer-row">
-        <span>${esc(t.de)}</span>
-        <span class="transfer-arrow">→</span>
-        <span>${esc(t.a)}</span>
-        <span class="transfer-amount">$${t.monto.toFixed(2)}</span>
-      </div>`).join('');
-  }
-}
-
-function calcularTransferencias(personas, aportes, porPersona){
-  // saldo positivo = a cobrar, negativo = a pagar
-  let saldos = personas.map(p=>({nombre:p, saldo: aportes[p]-porPersona}));
-  const EPS = 0.005;
-  let resultado = [];
-
-  // ordenar: deudores (neg) y acreedores (pos)
-  let deudores = saldos.filter(s=>s.saldo<-EPS).map(s=>({...s,saldo:-s.saldo}));
-  let acreedores = saldos.filter(s=>s.saldo>EPS);
-
-  deudores.sort((a,b)=>b.saldo-a.saldo);
-  acreedores.sort((a,b)=>b.saldo-a.saldo);
-
-  let i=0, j=0;
-  while(i<deudores.length && j<acreedores.length){
-    const pagar = deudores[i].saldo;
-    const cobrar = acreedores[j].saldo;
-    const monto = Math.min(pagar,cobrar);
-    if(monto>EPS){
-      resultado.push({de:deudores[i].nombre, a:acreedores[j].nombre, monto});
-    }
-    deudores[i].saldo -= monto;
-    acreedores[j].saldo -= monto;
-    if(deudores[i].saldo<=EPS) i++;
-    if(acreedores[j].saldo<=EPS) j++;
-  }
-  return resultado;
-}
-
-// ── TABS ─────────────────────────────────────────────────
-function mostrarTab(nombre, btn){
-  ['balance','transferencias','historial'].forEach(t=>{
-    document.getElementById('tab-'+t).style.display = t===nombre?'block':'none';
-  });
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-  if(btn) btn.classList.add('active');
-  else document.querySelector('.tab').classList.add('active');
-}
-
-// ── MODAL ────────────────────────────────────────────────
-function cerrarModal(){
-  document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('active'));
-}
-document.querySelectorAll('.modal-overlay').forEach(m=>{
-  m.addEventListener('click',e=>{ if(e.target===m) cerrarModal(); });
-});
-
-// ── UTILS ────────────────────────────────────────────────
-function esc(s){
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ── PDF ──────────────────────────────────────────────────
-function abrirModalPDF(){
-  const g = grupoActual();
-  if(g.personas.length===0){alert('No hay personas en el grupo.');return;}
-  const form = document.getElementById('pdf-personas-form');
-  form.innerHTML = g.personas.map(p=>`
-    <div class="pdf-persona-row">
-      <div class="pdf-persona-nombre">${esc(p)}</div>
-      <input type="text" id="pdf-alias-${esc(p)}" placeholder="CVU o alias (opcional)">
-      <input type="text" id="pdf-titular-${esc(p)}" placeholder="Nombre del titular (opcional)">
-    </div>`).join('');
-  document.getElementById('modal-pdf').classList.add('active');
-}
-
-function generarPDF(){
-  const g = grupoActual();
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
-
-  const W = 210, M = 18;
-  const verde = [31,122,92];
-  const grisOscuro = [40,40,40];
-  const grisMedio = [100,100,100];
-  const grisClaro = [240,242,245];
-  const rojo = [192,57,43];
-  const fecha = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
-
-  // Recolectar datos bancarios
-  const bancarios = {};
-  g.personas.forEach(p=>{
-    bancarios[p] = {
-      alias: document.getElementById(`pdf-alias-${p}`)?.value.trim() || '',
-      titular: document.getElementById(`pdf-titular-${p}`)?.value.trim() || ''
-    };
-  });
-
-  // ── Calcular datos
-  let total=0, aportes={};
-  g.personas.forEach(p=>aportes[p]=0);
-  g.gastos.forEach(x=>{ total+=x.monto; if(aportes[x.pagadoPor]!==undefined) aportes[x.pagadoPor]+=x.monto; });
-  const porPersona = total/g.personas.length;
-  const transferencias = calcularTransferencias(g.personas, aportes, porPersona);
-
-  let y = 0;
-
-  // ── Encabezado verde
-  doc.setFillColor(...verde);
-  doc.rect(0, 0, W, 36, 'F');
-  doc.setTextColor(255,255,255);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(20);
-  doc.text('Cuenta Clara', M, 16);
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(10);
-  doc.text(`Resumen de gastos · ${g.nombre}`, M, 24);
-  doc.text(`Generado el ${fecha}`, M, 30);
-  y = 46;
-
-  // ── Total general
-  doc.setFillColor(...grisClaro);
-  doc.roundedRect(M, y, W-M*2, 16, 3, 3, 'F');
-  doc.setTextColor(...grisOscuro);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(12);
-  doc.text('Total gastado:', M+6, y+10);
-  doc.setTextColor(...verde);
-  doc.setFontSize(13);
-  doc.text(`$${total.toFixed(2)}`, W-M-2, y+10, {align:'right'});
-  doc.setTextColor(...grisMedio);
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(9);
-  doc.text(`$${porPersona.toFixed(2)} por persona (${g.personas.length} personas)`, W-M-2, y+10+5, {align:'right'});
-  y += 26;
-
-  // ── Balance por persona
-  doc.setTextColor(...grisOscuro);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(12);
-  doc.text('Balance por persona', M, y);
-  y += 6;
-  doc.setDrawColor(220,220,220);
-  doc.line(M, y, W-M, y);
-  y += 5;
-
-  g.personas.forEach(p=>{
-    const bal = aportes[p]-porPersona;
-    const esPos = bal>0.005, esNeg = bal<-0.005;
-    const txt = esPos?`puso $${bal.toFixed(2)} de más` : esNeg?`debe $${Math.abs(bal).toFixed(2)}` : 'está al día';
-    const color = esPos?verde : esNeg?rojo : grisMedio;
-
-    doc.setFillColor(esPos?234:esNeg?255:245, esPos?247:esNeg?240:245, esPos?241:esNeg?240:245);
-    doc.roundedRect(M, y, W-M*2, 14, 2, 2, 'F');
-    doc.setTextColor(...grisOscuro);
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(11);
-    doc.text(p, M+4, y+9);
-    doc.setTextColor(...color);
-    doc.setFont('helvetica','normal');
-    doc.setFontSize(10);
-    doc.text(txt, W-M-4, y+9, {align:'right'});
-    y += 17;
-  });
-  y += 4;
-
-  // ── Cómo saldar
-  doc.setTextColor(...grisOscuro);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(12);
-  doc.text('Cómo saldar las deudas', M, y);
-  y += 6;
-  doc.setDrawColor(220,220,220);
-  doc.line(M, y, W-M, y);
-  y += 5;
-
-  if(transferencias.length===0){
-    doc.setFont('helvetica','italic');
-    doc.setFontSize(10);
-    doc.setTextColor(...grisMedio);
-    doc.text('Todos están al día. No hay nada que saldar.', M, y+6);
-    y += 14;
-  } else {
-    transferencias.forEach(t=>{
-      // Verificar si hay datos bancarios del receptor
-      const banco = bancarios[t.a];
-      const tieneInfo = banco && (banco.alias || banco.titular);
-      const alto = tieneInfo ? 22 : 14;
-
-      doc.setFillColor(245,255,250);
-      doc.setDrawColor(...verde);
-      doc.roundedRect(M, y, W-M*2, alto, 2, 2, 'FD');
-
-      // Flecha y nombres
-      doc.setTextColor(...grisOscuro);
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(11);
-      doc.text(`${t.de}  ->  ${t.a}`, M+4, y+9);
-      doc.setTextColor(...verde);
-      doc.setFontSize(12);
-      doc.text(`$${t.monto.toFixed(2)}`, W-M-4, y+9, {align:'right'});
-
-      if(tieneInfo){
-        doc.setTextColor(...grisMedio);
-        doc.setFont('helvetica','normal');
-        doc.setFontSize(9);
-        let infoTxt = '';
-        if(banco.alias) infoTxt += `CVU/Alias: ${banco.alias}`;
-        if(banco.titular) infoTxt += `${banco.alias?' · ':''}A nombre de: ${banco.titular}`;
-        doc.text(infoTxt, M+4, y+17);
-      }
-      y += alto + 5;
-    });
-  }
-  y += 4;
-
-  // ── Datos bancarios completos
-  const conDatos = g.personas.filter(p=>bancarios[p]&&(bancarios[p].alias||bancarios[p].titular));
-  if(conDatos.length>0){
-    doc.setTextColor(...grisOscuro);
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(12);
-    doc.text('Datos bancarios', M, y);
-    y += 6;
-    doc.setDrawColor(220,220,220);
-    doc.line(M, y, W-M, y);
-    y += 5;
-
-    conDatos.forEach(p=>{
-      const b = bancarios[p];
-      doc.setFillColor(...grisClaro);
-      doc.roundedRect(M, y, W-M*2, 18, 2, 2, 'F');
-      doc.setTextColor(...verde);
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(11);
-      doc.text(p, M+4, y+8);
-      doc.setTextColor(...grisOscuro);
-      doc.setFont('helvetica','normal');
-      doc.setFontSize(10);
-      if(b.alias) doc.text(`CVU/Alias: ${b.alias}`, M+4, y+15);
-      if(b.titular){
-        const xTit = b.alias ? W-M-4 : M+4;
-        const anchor = b.alias ? 'right' : 'left';
-        doc.text(`A nombre de: ${b.titular}`, xTit, y+15, {align:anchor});
-      }
-      y += 22;
-    });
-    y += 4;
-  }
-
-  // ── Historial de gastos
-  if(g.gastos.length>0){
-    // Calcular espacio necesario: título(11) + header(8) + filas(7 c/u) + margen(20)
-    const espacioNecesario = 11 + 8 + g.gastos.length * 7 + 20;
-    const espacioDisponible = 277 - y; // 277 = límite antes del pie
-    if(espacioDisponible < Math.min(espacioNecesario, 60)) {
-      doc.addPage(); y = 20;
-    }
-    doc.setTextColor(...grisOscuro);
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(12);
-    doc.text('Historial de gastos', M, y);
-    y += 6;
-    doc.setDrawColor(220,220,220);
-    doc.line(M, y, W-M, y);
-    y += 5;
-
-    // Header tabla
-    doc.setFillColor(...verde);
-    doc.rect(M, y, W-M*2, 8, 'F');
-    doc.setTextColor(255,255,255);
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(9);
-    doc.text('Pago', M+3, y+5.5);
-    doc.text('Descripcion', M+38, y+5.5);
-    doc.text('Monto', W-M-3, y+5.5, {align:'right'});
-    y += 8;
-
-    g.gastos.forEach((x,i)=>{
-      if(y>270){doc.addPage();y=20;}
-      if(i%2===0){doc.setFillColor(248,250,252);doc.rect(M,y,W-M*2,7,'F');}
-      doc.setTextColor(...grisOscuro);
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(9);
-      doc.text(x.pagadoPor.substring(0,14), M+3, y+5);
-      doc.setFont('helvetica','normal');
-      doc.text(x.descripcion.substring(0,32), M+38, y+5);
-      doc.setTextColor(...verde);
-      doc.setFont('helvetica','bold');
-      doc.text(`$${x.monto.toFixed(2)}`, W-M-3, y+5, {align:'right'});
-      y += 7;
-    });
-  }
-
-  // ── Pie de página
-  const totalPags = doc.getNumberOfPages();
-  for(let i=1;i<=totalPags;i++){
-    doc.setPage(i);
-    doc.setTextColor(...grisMedio);
-    doc.setFont('helvetica','normal');
-    doc.setFontSize(8);
-    doc.text('Generado con Cuenta Clara', M, 292);
-    doc.text(`Página ${i} de ${totalPags}`, W-M, 292, {align:'right'});
-  }
-
-  const nombreArchivo = `CuentaClara_${g.nombre.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.pdf`;
-  doc.save(nombreArchivo);
-  cerrarModal();
-}
-
-// ── PDF ──────────────────────────────────────────────────
-renderGrupos();
-</script>
+<script src="app.js"></script>
 </body>
 </html>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
